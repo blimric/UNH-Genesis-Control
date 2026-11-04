@@ -68,6 +68,10 @@ class NMRFeeder:
             if last_sim is not None and 0 <= t - last_sim < SWEEP_SIM_S:
                 time.sleep(0.05)
                 continue
+            # the live cool-down's target insert takes the NMR down for a while
+            if self.provider is not None and not getattr(self.provider, "nmr_up", lambda: True)():
+                time.sleep(0.2)
+                continue
             if sock is None:
                 try:
                     sock = socket.create_connection(("127.0.0.1", self.port), timeout=5)

@@ -20,6 +20,7 @@ import math
 
 from softioc import alarm, builder
 
+from . import warp
 from .timeparse import parse_lab_time
 from .sim_pvs import AUTOPILOT_LEGS, FAULT_INSTRUMENTS, FAULT_MODES
 
@@ -50,6 +51,19 @@ MODEL_INPUTS = (("CB_HEAT_W_CMD", "coldboard_heat_W", "W", 0.0, 5.0),
                 ("MW_UCA_V_CMD", "mw_uca_V", "V", 0.0, 5.0),
                 ("NMR_CENTER_MHZ_CMD", "nmr_center_MHz", "MHz", 0.0, 300.0),
                 ("NMR_SPAN_MHZ_CMD", "nmr_span_MHz", "MHz", 0.0, 5.0))
+
+#: the live cool-down's world (Elena Long, 2026-11-04): one-shot buttons
+#: (PV, action) and on/off switches (PV, action, ZNAM, ONAM, status key)
+WORLD_BUTTONS = (("START_COOLDOWN_CMD", "start_cooldown"), ("INSERT_CMD", "insert"),
+                 ("MAGNET_FILL_CMD", "magnet_fill"), ("WARMUP_CMD", "warm_up"),
+                 ("RESET_WARM_CMD", "reset_warm"))
+WORLD_SWITCHES = (("BACKING_CMD", "backing", "Off", "On", "backing"),
+                  ("ROOTS_CMD", "roots", "Off", "On", "roots"),
+                  ("SHELLS_LEAK_CMD", "shells_leak", "Sealed", "LEAK", "shells_leak"),
+                  ("CELL_LEAK_CMD", "cell_leak", "Sealed", "LEAK", "cell_leak"))
+#: world read-backs (PV, units, status key)
+WORLD_VALUES = (("MAGNET_LEVEL", "in", "magnet_level_in"), ("BATH_K", "K", "bath_K"),
+                ("CELL_TORR", "Torr", "cell_torr"))
 
 
 class Device:
@@ -94,6 +108,31 @@ class Device:
                                    always_update=True,
                                    on_update=lambda v: v and self._cmd({"cmd": "jump", "minutes": float(v)}))
         p["SEEK_CMD"] = b.stringOut("SEEK_CMD", always_update=True, on_update=self._seek)
+        # time warp: the slider (0 paused, clicks at 1x), auto drop to 1x
+        p["SPEED_POS_CMD"] = b.aOut("SPEED_POS_CMD", PREC=1, DRVL=0.0, DRVH=warp.TOP,
+                                    initial_value=0.0, always_update=True, on_update=self._speed_pos)
+        p["AUTO_DROP_CMD"] = b.boolOut("AUTO_DROP_CMD", ZNAM="Off", ONAM="On", initial_value=1,
+                                       always_update=True,
+                                       on_update=lambda v: self._cmd({"cmd": "auto_drop", "on": bool(v)}))
+        p["AUTO_DROP_RBV"] = b.boolIn("AUTO_DROP_RBV", ZNAM="Off", ONAM="On")
+        p["WARP_ACTIVE"] = b.boolIn("WARP_ACTIVE", ZNAM="Your speed", ONAM="Time warp")
+
+        # the live cool-down's world
+        p["LIVE"] = b.boolIn("LIVE", ZNAM="Past record", ONAM="Live cool-down")
+        p["WORLD_PHASE"] = b.stringIn("WORLD_PHASE")
+        p["WORLD_HINT"] = b.longStringIn("WORLD_HINT", length=128)
+        for pv, action in WORLD_BUTTONS:
+            p[pv] = b.boolOut(pv, ZNAM="", ONAM="Go", always_update=True,
+                              on_update=lambda v, action=action: v and self._cmd(
+                                  {"cmd": "world", "action": action, "value": 1}))
+        for pv, action, znam, onam, _key in WORLD_SWITCHES:
+            p[pv] = b.boolOut(pv, ZNAM=znam, ONAM=onam, always_update=True,
+                              on_update=lambda v, action=action: self._cmd(
+                                  {"cmd": "world", "action": action, "value": int(v)}))
+            p[pv.replace("_CMD", "_RBV")] = b.boolIn(pv.replace("_CMD", "_RBV"), ZNAM=znam, ONAM=onam)
+        p["FILLING_RBV"] = b.boolIn("FILLING_RBV", ZNAM="", ONAM="Filling")
+        for pv, egu, _key in WORLD_VALUES:
+            p[pv] = b.aIn(pv, EGU=egu, PREC=3)
 
         # faults
         for inst in FAULT_INSTRUMENTS:
@@ -140,6 +179,18 @@ class Device:
         p["HIST_FIT_P"] = b.WaveformIn("HIST_FIT_P", length=n, datatype=float)
         self._hist: list[tuple[float, float, float]] = []
         self._hist_n = n
+
+    def _speed_pos(self, value):
+        """The slider moved: click to 0 / 1x, then pause or set the speed."""
+        pos = warp.snap(float(value))
+        if pos != float(value):
+            self.pvs["SPEED_POS_CMD"].set(pos, process=False)
+        speed = warp.to_speed(pos)
+        if speed == 0.0:
+            self._cmd({"cmd": "pause"})
+        else:
+            self._cmd({"cmd": "speed", "value": speed})
+            self._cmd({"cmd": "play"})
 
     def _seek(self, value):
         try:
@@ -216,6 +267,18 @@ class Device:
             pv = p.get(f"AUTOPILOT_{leg.upper()}_RBV")
             if pv is not None:
                 pv.set(1 if on else 0)
+        p["AUTO_DROP_RBV"].set(1 if st.get("auto_drop", True) else 0)
+        p["WARP_ACTIVE"].set(1 if st.get("warp") else 0)
+        world = st.get("world") or {}
+        p["LIVE"].set(1 if world else 0)
+        if world:
+            p["WORLD_PHASE"].set(str(world.get("phase_text", ""))[:39])
+            p["WORLD_HINT"].set(str(world.get("hint", ""))[:127])
+            for pv, _action, _z, _o, key in WORLD_SWITCHES:
+                p[pv.replace("_CMD", "_RBV")].set(1 if world.get(key) else 0)
+            p["FILLING_RBV"].set(1 if world.get("filling") else 0)
+            for pv, _egu, key in WORLD_VALUES:
+                p[pv].set(float(world.get(key, math.nan)))
         truth = st.get("truth", {}) or {}
         p["MODEL_ACTIVE"].set(1 if truth else 0)
         for pv, _egu, key in TRUTH:

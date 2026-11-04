@@ -47,9 +47,10 @@ SESSION_LEGS = {"nmr"}
 def add_parsers(sub) -> None:
     p = sub.add_parser("run", help="run a simulated cool-down")
     p.add_argument("--mode", choices=["regression", "interactive"], default="regression")
-    p.add_argument("--source", choices=["real", "synthetic"], default="real",
+    p.add_argument("--source", choices=["real", "synthetic", "warm"], default="real",
                    help="real: a past cool-down under $%s; synthetic: a seeded designed day "
-                        "(no data needed)" % DATA_ENV)
+                        "(no data needed); warm: the live cool-down from warm, every button "
+                        "working (interactive only, no data needed)" % DATA_ENV)
     p.add_argument("--faults", default="",
                    help="synthetic record faults, comma list: data_gap, glitches")
     p.add_argument("--cooldown", help="e.g. 2026-06 (directory under $%s)" % DATA_ENV)
@@ -208,6 +209,34 @@ SUPPLY_INITIAL = {
 }
 
 
+def session_settings(args, stacks: dict, offset: int) -> dict:
+    """Settings this session gives the generated profiles (profile.SESSION_SETTINGS).
+
+    Interactive sessions: the trend-history plots read in simulated time (Sim
+    Control's SIM_TIME).  The live warm start (Ells, 2026-11-04: "push all the
+    buttons"): the magnet supply and the cold board take writes -- emulators,
+    never hardware -- and, because the supply follows simulated time under the
+    time warp, the magnet IOC's wall-clock backstops (observed rate, inductance
+    seen while ramping, segment deadline) are relaxed; the commanded 3 A/min
+    cap and every other check stay."""
+    out: dict = {}
+    if args.mode == "interactive":
+        ctl = stacks["legs"]["sim"]["controller"]
+        why = "interactive session: trends in simulated time"
+        out["trend_history"] = {
+            "time_pv": (f"{ctl['prefix']}:SIM_TIME", why), "backfill": (False, why),
+            "delay": (0.25, why),
+            "general.epics_addr_list+": (f"127.0.0.1:{int(ctl['ca']) + offset}", why)}
+    if getattr(args, "source", "") == "warm":
+        why = "live warm start: operator writes reach the emulator"
+        warp = "live warm start: the supply follows simulated time (time warp)"
+        out["ips120"] = {"write_enabled": (True, why), "observed_rate_margin": (1.0e9, warp),
+                         "measured_inductance_tolerance": (1.0e9, warp),
+                         "deadline_slack_s": (1.0e9, warp)}
+        out["siglent_coldboard"] = {"write_enabled": (True, why)}
+    return out
+
+
 def controller_profile(run_path: Path, stacks: dict, offset: int) -> tuple[Path, dict]:
     """Settings folder for the Sim Control IOC inside the run directory."""
     ctl = stacks["legs"]["sim"]["controller"]
@@ -222,6 +251,42 @@ def controller_profile(run_path: Path, stacks: dict, offset: int) -> tuple[Path,
         yaml.safe_dump(settings, fh, sort_keys=False)
     return folder, {"prefix": ctl["prefix"], "ca": int(ctl["ca"]) + offset,
                     "pva": int(ctl["pva"]) + offset, "control_port": int(ctl["control_port"]) + offset}
+
+
+class AlertWatch:
+    """Live warm start: what drops the time warp to 1x (Ells, 2026-11-04) -- new
+    major cryo alarms, interlock trips, a magnet quench, the target model's
+    quench, and the live cryostat's own alerts (magnet LHe low).  Polled once a
+    second by the session loop; inside an automatic stage the engine ignores
+    them (the alarms of a warm cryostat are expected)."""
+
+    PVS = {"UNH:GEN:CRYO:ALARM:Alarm_Major": "new major cryo alarm",
+           "UNH:GEN:CRYO:SAFE:Safe_Trips": "safety interlock trip",
+           "UNH:GEN:MAG:QUENCH": "magnet quench (supply)"}
+
+    def __init__(self, engine):
+        self.engine = engine
+        self.last: dict = {}
+        self.model_quench = False
+
+    async def check(self) -> None:
+        from aioca import caget
+        reasons = list(self.engine.background.pop_alerts())
+        for pv, why in self.PVS.items():
+            try:
+                value = float(await caget(pv, timeout=0.5))
+            except Exception:  # noqa: BLE001 - an IOC not up yet is no alert
+                continue
+            before = self.last.get(pv)
+            self.last[pv] = value
+            if before is not None and value > before:
+                reasons.append(why)
+        q = bool(getattr(self.engine.provider.model.inputs, "quench", False))
+        if q and not self.model_quench:
+            reasons.append("quench (Sim Control)")
+        self.model_quench = q
+        for why in reasons:
+            self.engine.alert(why)
 
 
 def _line_strong(engine, t: float) -> bool:
@@ -296,7 +361,17 @@ def _run(args) -> int:
         if importlib.util.find_spec("epics") is None:
             print("--nmr-protected needs pyepics: pip install -r requirements-replay.txt")
             return EXIT_SETUP
-    if args.source == "synthetic":
+    if args.source == "warm":
+        if args.mode != "interactive":
+            print("--source warm is interactive only (--mode interactive)")
+            return EXIT_SETUP
+        from .synth.live import LiveBackground
+        t0 = float(int(time.time()))             # the live cool-down starts "now"
+        timeline, cd = LiveBackground(t0), None
+        t1 = timeline.end
+        source_meta = {"kind": "warm", "t0": t0}
+        source_label = "live cool-down (warm start)"
+    elif args.source == "synthetic":
         from .synth import cooldown as synth
         faults = tuple(f.strip() for f in args.faults.split(",") if f.strip())
         made = synth.make(seed=args.seed, faults=faults)
@@ -326,7 +401,8 @@ def _run(args) -> int:
     stacks = ports.load_stacks()
     spec = getattr(args, "scenario_spec", None) or {}
     stack = profile.generate(run.path, tuple(l for l in legs if l not in SESSION_LEGS),
-                             offset=args.port_offset, overrides=spec.get("overrides"))
+                             offset=args.port_offset, overrides=spec.get("overrides"),
+                             session=session_settings(args, stacks, args.port_offset))
     from .validation import save_stack
     save_stack(stack)
     ctl_folder, ctl = controller_profile(run.path, stacks, args.port_offset)
@@ -366,10 +442,17 @@ async def _session(args, run, stack, stacks, timeline, cmap, t0, t1, meta, ctl_f
     from .epics_env import apply_client_env_here, server_env
 
     interactive = args.mode == "interactive"
+    live = getattr(args, "source", "") == "warm"
     clock = SimClock(t0, args.speed, running=False)
+    supply_initial = dict(SUPPLY_INITIAL)
+    if live:
+        # everything off: the magnet at zero, persistent (heater off), its supply
+        # on SIMULATED time so a ramp keeps pace with the time warp
+        supply_initial["ips120"] = {"initial_current_a": 0.0, "initial_persistent": True,
+                                    "clock": clock.now}
     engine = SimEngine(run, stack, timeline, cmap, clock, noise_rel=args.noise_rel, seed=args.seed,
                        provider=build_provider(args, timeline, cmap, clock),
-                       supply_initial=SUPPLY_INITIAL)
+                       supply_initial=supply_initial)
     spec = getattr(args, "scenario_spec", None)
     if args.autopilot is None and spec is not None and "autopilot" in spec:
         args.autopilot = ",".join(spec["autopilot"] or [])
@@ -492,6 +575,7 @@ async def _session(args, run, stack, stacks, timeline, cmap, t0, t1, meta, ctl_f
             feed_port = fitter["pynmr_port"] if args.nmr_protected else fitter["fit_port"]
             feeder = NMRFeeder(source, clock, feed_port, run.path / "nmr.csv",
                                provider=engine.provider, events=engine.events).start()
+        watch = AlertWatch(engine) if live else None
         if any(s.leg == "cryo" and s.ioc == "archiver" for s in stack.iocs):
             await ca.caput("UNH:GEN:CRYO:ARCH:Archive_Enable", 1)
         await asyncio.sleep(3.0)                     # first polls at the start time
@@ -512,6 +596,10 @@ async def _session(args, run, stack, stacks, timeline, cmap, t0, t1, meta, ctl_f
         last_print = 0.0
         fit_autopilot_done = False
         while not engine.stop_requested.is_set():
+            if live:
+                engine.provider.live_tick()
+                engine.warp_tick()
+                await watch.check()
             # fitter autopilot: calibrate once the fitter has seen enough equilibrium sweeps
             if (feeder is not None and engine.autopilot.get("fit") and not fit_autopilot_done
                     and feeder.sent >= FIT_AUTOPILOT_SWEEPS and _line_strong(engine, clock.now())):
@@ -578,6 +666,8 @@ async def _session(args, run, stack, stacks, timeline, cmap, t0, t1, meta, ctl_f
 
     from .validation import run_all
     t_end = max(c.sim for c in clock.checkpoints())
+    if live:
+        timeline = None                  # no record to compare with: the served values are the truth
     verdict, md, html, checks = run_all(run.path, stack, runtime=runtime, timeline=timeline,
                                         t0=t0, t1=max(t_end, t0 + 60.0), meta=meta)
     print(f"\n{verdict}: {md}")

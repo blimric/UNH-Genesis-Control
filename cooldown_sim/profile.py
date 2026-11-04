@@ -178,13 +178,35 @@ def _endpoint_port(spec: dict, offset: int) -> int | None:
 
 
 # ------------------------------------------------------------------- generate
+#: settings a SESSION may set (Elena Long, 2026-11-04), never a scenario: the
+#: interactive sessions' simulated-time trends, and the live warm-start
+#: cool-down, where the operator pushes every button -- writes enabled on the
+#: magnet supply and the cold board (emulators only), and the magnet IOC's
+#: wall-clock backstops relaxed because its supply follows simulated time
+#: under the time warp.  "general.epics_addr_list+" appends to the mapped list.
+SESSION_SETTINGS = frozenset({
+    ("trend_history", "time_pv"), ("trend_history", "backfill"), ("trend_history", "delay"),
+    ("trend_history", "general.epics_addr_list+"),
+    ("ips120", "write_enabled"), ("ips120", "observed_rate_margin"),
+    ("ips120", "measured_inductance_tolerance"), ("ips120", "deadline_slack_s"),
+    ("siglent_coldboard", "write_enabled"),
+})
+
+
 def generate(run_dir: Path, legs=("cryo", "ssrf", "mw"), *, offset: int = 0,
              overrides: dict | None = None, stacks: dict | None = None,
-             root: Path = REPO_ROOT, posix: bool | None = None) -> GeneratedStack:
+             root: Path = REPO_ROOT, posix: bool | None = None,
+             session: dict | None = None) -> GeneratedStack:
     """Write replay profiles for ``legs`` into ``run_dir/profiles``.
 
     ``overrides``: {ioc_key: {setting: value}} limited to SCENARIO_OVERRIDABLE.
+    ``session``: {ioc_key: {setting: (value, reason)}} limited to SESSION_SETTINGS.
     """
+    session = session or {}
+    for ioc_key, settings in session.items():
+        for setting in settings:
+            if (ioc_key, setting) not in SESSION_SETTINGS:
+                raise ValueError(f"a session may not set {ioc_key}.{setting}")
     stacks = stacks or load_stacks()
     run_dir = Path(run_dir).resolve()
     out = GeneratedStack(run_dir)
@@ -245,6 +267,16 @@ def generate(run_dir: Path, legs=("cryo", "ssrf", "mw"), *, offset: int = 0,
                     value = str(Path(value).resolve())
                 note(f"{ioc_key}.{setting}", block.get(setting), value, "scenario override",
                      out.overrides)
+                block[setting] = value
+
+            for setting, (value, reason) in session.get(ioc_key, {}).items():
+                if setting == "general.epics_addr_list+":
+                    old = new["general"].get("epics_addr_list", "None")
+                    value = value if "None" in str(old) else f"{old} {value}"
+                    note("general.epics_addr_list", old, value, reason)
+                    new["general"]["epics_addr_list"] = value
+                    continue
+                note(f"{ioc_key}.{setting}", block.get(setting), value, reason)
                 block[setting] = value
 
             dest_dir.mkdir(parents=True, exist_ok=True)

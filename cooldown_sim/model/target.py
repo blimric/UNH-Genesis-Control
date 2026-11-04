@@ -185,6 +185,9 @@ class TargetModel:
         self.burn_heat: list = []                  # (t_start, t_end, watts) from the ssRF leg
         self.clamped_burns = 0                     # burns projected back into the physical region
         self._lock = threading.RLock()
+        #: () -> the field (T) from a live magnet (the interactive warm start's
+        #: IPS120 emulator), instead of the record's (Elena Long, 2026-11-04)
+        self.field_source = None
         self.state = self._initial(t0)
 
     # ----------------------------------------------------------- history
@@ -228,7 +231,14 @@ class TargetModel:
 
         The DAQ computed "Central Mag Field" from the supply current (0.10274113
         T/A in every cool-down that logs both); 2020-21 log only the current,
-        which is converted with the NMR-measured equation (field_from_current)."""
+        which is converted with the NMR-measured equation (field_from_current).
+        With ``field_source`` set (a live magnet), the field is that magnet's."""
+        if self.field_source is not None:
+            try:
+                b = float(self.field_source())
+            except Exception:                   # noqa: BLE001 - no magnet: no field
+                b = 0.0
+            return b if math.isfinite(b) and b > 0.5 else 0.0
         b = self.tl.value_at("central_field", t)
         if not math.isfinite(b):
             b = field_from_current(self.tl.value_at("magnet_current", t))

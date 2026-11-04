@@ -18,7 +18,7 @@ from cooldown_sim.sim_pvs import AUTOPILOT_LEGS, FAULT_INSTRUMENTS
 
 OUT = Path(__file__).with_name("genesis_sim_control.bob")
 P = "UNH:GEN:SIM"
-W, H = 1400, 940
+W, H = 1400, 1190
 
 NAVY = (0, 53, 145)
 RED = (190, 20, 20)
@@ -65,7 +65,7 @@ def label(text, x, y, w, h, size=11, bold=False, fg=TEXT, bg=None, align=0):
 
 
 #: char-waveform (longString) PVs must be shown with format STRING (6)
-LONG_STRINGS = ("WINDOW", "LAST_EVENT", "RUN_DIR", "NOTE_RBV", "NOTE_CMD")
+LONG_STRINGS = ("WINDOW", "LAST_EVENT", "RUN_DIR", "NOTE_RBV", "NOTE_CMD", "WORLD_HINT")
 
 
 def update(pv, x, y, w, h, size=11, bold=False, fmt=None, prec=None, units=True):
@@ -139,6 +139,73 @@ def history_plot(x, y, w, h):
             f"<show_grid>true</show_grid><on_right>false</on_right></y_axis></y_axes>"
             f"<traces>{trace('truth', P + ':HIST_TRUE_P', NAVY)}{trace('fitter', P + ':HIST_FIT_P', RED)}"
             f"</traces></widget>")
+
+
+def slider(pv, x, y, w, h, lo, hi):
+    """A horizontal scaled slider (no scale: the marks are labels under it)."""
+    return (f'<widget type="scaledslider" version="2.0.0"><name>{_name("Slider")}</name>'
+            f"<pv_name>ca://{pv}</pv_name><x>{x}</x><y>{y}</y><width>{w}</width><height>{h}</height>"
+            f"<horizontal>true</horizontal><limits_from_pv>false</limits_from_pv>"
+            f"<minimum>{lo}</minimum><maximum>{hi}</maximum><increment>0.5</increment>"
+            f"<show_scale>false</show_scale></widget>")
+
+
+def warp_card(x, y, w):
+    """Speed slider (0 paused, clicks at 1x), warp state, auto drop to 1x."""
+    from cooldown_sim import warp
+    w.append(card("Time warp", x, y, 680, 240))
+    sx, sw = x + 25, 630
+    w.append(slider(f"{P}:SPEED_POS_CMD", sx, y + 40, sw, 44, 0.0, warp.TOP))
+    for text, pos in warp.MARKS.items():
+        cx = sx + int(round(pos / warp.TOP * (sw - 24))) + 12
+        w.append(label(text, cx - 30, y + 86, 60, 18, 9, text in ("pause", "1x"), MUTED, align=1))
+    w.append(label("Speed now", x + 15, y + 112, 90, 26, 11, False, MUTED))
+    w.append(update(f"{P}:SPEED_RBV", x + 105, y + 110, 110, 30, 14, True))
+    w.append(led(f"{P}:WARP_ACTIVE", x + 230, y + 115, 20))
+    w.append(update(f"{P}:WARP_ACTIVE", x + 256, y + 112, 130, 26, 11, True))
+    w.append(label("Drop to 1x on alarms, trips, quenches", x + 15, y + 150, 300, 26, 11, False, MUTED))
+    w.append(button("On", f"{P}:AUTO_DROP_CMD", 1, x + 320, y + 148, 60, 28))
+    w.append(button("Off", f"{P}:AUTO_DROP_CMD", 0, x + 385, y + 148, 60, 28))
+    w.append(update(f"{P}:AUTO_DROP_RBV", x + 455, y + 150, 80, 26, 11, True))
+    w.append(label("The slider clicks at pause and 1x.  Automatic stages of the live cool-down "
+                   "warp the clock (about a minute each), then give your speed back.",
+                   x + 15, y + 185, 650, 44, 9, False, MUTED))
+
+
+def world_card(x, y, w):
+    """The live cool-down from warm (``--source warm``): Ells's world buttons."""
+    w.append(card("Live cool-down (--source warm)", x, y, 660, 240))
+    w.append(led(f"{P}:LIVE", x + 15, y + 38, 18))
+    w.append(update(f"{P}:WORLD_PHASE", x + 40, y + 34, 300, 26, 12, True))
+    w.append(update(f"{P}:WORLD_HINT", x + 345, y + 34, 300, 26, 10))
+    bx, by = x + 15, y + 68
+    w.append(button("Start Cool-down Sim", f"{P}:START_COOLDOWN_CMD", 1, bx, by, 170, 30, bg=(200, 235, 205)))
+    w.append(button("Target Stick Insert", f"{P}:INSERT_CMD", 1, bx + 178, by, 160, 30,
+                    confirm="Insert the target stick? The pumps go off, T1/T3 and the NMR go down, "
+                            "the fridge goes to ~4.2 K; then turn the backing pump and the Roots back on."))
+    w.append(button("Warm up", f"{P}:WARMUP_CMD", 1, bx + 346, by, 100, 30,
+                    confirm="Warm the cryostat up to room temperature?", bg=(250, 230, 200)))
+    w.append(button("Reset to warm", f"{P}:RESET_WARM_CMD", 1, bx + 454, by, 176, 30,
+                    confirm="Reset everything to warm and off at once?", bg=(245, 205, 205)))
+    rows = (("Backing pump", "BACKING", ("On", 1), ("Off", 0)),
+            ("Roots", "ROOTS", ("On", 1), ("Off", 0)),
+            ("Shells vacuum", "SHELLS_LEAK", ("Leak", 1), ("Fix", 0)),
+            ("Cell", "CELL_LEAK", ("Leak", 1), ("Fix", 0)))
+    for i, (text, key, a, b) in enumerate(rows):
+        cx = x + 15 + (i % 2) * 325
+        cy = y + 108 + (i // 2) * 36
+        w.append(label(text, cx, cy, 110, 28, 11, True))
+        w.append(button(a[0], f"{P}:{key}_CMD", a[1], cx + 110, cy, 60, 28))
+        w.append(button(b[0], f"{P}:{key}_CMD", b[1], cx + 174, cy, 60, 28))
+        w.append(led(f"{P}:{key}_RBV", cx + 242, cy + 4, 20))
+        w.append(update(f"{P}:{key}_RBV", cx + 266, cy, 50, 28, 10, True))
+    yy = y + 182
+    w.append(button("Magnet LHe Fill", f"{P}:MAGNET_FILL_CMD", 1, x + 15, yy, 140, 30))
+    w.append(update(f"{P}:FILLING_RBV", x + 160, yy + 2, 70, 26, 10, True))
+    for i, (text, pv) in enumerate((("Magnet LHe", "MAGNET_LEVEL"), ("Bath", "BATH_K"), ("Cell", "CELL_TORR"))):
+        cx = x + 240 + i * 140
+        w.append(label(text, cx, yy - 2, 135, 16, 9, False, MUTED))
+        w.append(update(f"{P}:{pv}", cx, yy + 12, 135, 22, 11, True, prec=2))
 
 
 def build() -> str:
@@ -263,6 +330,10 @@ def build() -> str:
         w.append(open_button(text, f"../../gui/{bob}", x + 15 + i * 165, y + 190, 155, 30))
 
     w.append(history_plot(720, 690, 660, 230))
+
+    # Elena Long (2026-11-04): time warp and the live cool-down's world
+    warp_card(20, 935, w)
+    world_card(720, 935, w)
 
     body = "\n  ".join(w)
     return (f'<?xml version="1.0" encoding="UTF-8"?>\n<display version="2.0.0">\n'

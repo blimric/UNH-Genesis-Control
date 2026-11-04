@@ -72,6 +72,15 @@ class SimEngine:
         #: operator microwave requests for the MW leg (thread-safe deque): ("frequency", GHz)
         self.mw_requests: collections.deque = collections.deque()
         self.stop_requested = threading.Event()
+        #: the interactive warm start's live cryostat (synth/live.py), or None
+        self.background = getattr(self.provider, "background", None)
+        #: time warp (Elena Long, 2026-11-04): an automatic stage of the live
+        #: cryostat warps the clock and gives the operator's speed back after;
+        #: (speed to restore, stage) while it warps
+        self._warp: tuple | None = None
+        self._warp_cancelled = None          # the stage the operator took the speed back in
+        #: drop the warp to 1x on alarms, interlock trips and quenches
+        self.auto_drop = True
 
     # ----------------------------------------------------------- lifecycle
     def start(self) -> None:
@@ -101,10 +110,50 @@ class SimEngine:
     def pause(self):
         self.events.write(self.clock.pause(), "clock", "pause")
 
-    def set_speed(self, speed: float):
+    def set_speed(self, speed: float, *, operator: bool = True):
+        if operator and self._warp is not None:
+            # the operator takes the speed back: no warp for the rest of this stage
+            self._warp_cancelled = self._warp[1]
+            self._warp = None
+            self.events.write(self.clock.now(), "warp", "time warp cancelled by the operator")
         self.events.write(self.clock.set_speed(speed), "clock", f"speed {speed:g}")
 
+    # ------------------------------------------------------------ time warp
+    def warp_tick(self) -> None:
+        """Once a second: warp the clock through the live cryostat's automatic
+        stages (each takes about a minute of wall time), then restore."""
+        bg = self.background
+        if bg is None:
+            return
+        stage, want = bg.phase_id(), bg.auto_speed()
+        if want is not None and stage != self._warp_cancelled:
+            if self._warp is None:
+                self._warp = (self.clock.speed, stage)
+                self.events.write(self.clock.now(), "warp", f"time warp {want:g}x: {stage[0]}")
+            self._warp = (self._warp[0], stage)
+            if abs(self.clock.speed - want) > 1e-6:
+                self.clock.set_speed(want)
+                self.last_event = f"time warp {want:g}x ({bg.status()['phase_text']})"
+        elif self._warp is not None:
+            saved = self._warp[0]
+            self._warp = None
+            self.set_speed(saved, operator=False)
+            self.last_event = f"time warp off: back to {saved:g}x"
+        for msg in bg.pop_events():
+            self.events.write(self.clock.now(), "world", msg)
+            self.last_event = msg
+
+    def alert(self, reason: str) -> None:
+        """An alarm, interlock trip or quench: drop the warp to 1x (if enabled
+        and not inside an automatic stage, whose alarms are expected)."""
+        self.events.write(self.clock.now(), "alert", reason)
+        if self.auto_drop and self._warp is None and self.clock.speed > 1.0:
+            self.set_speed(1.0, operator=False)
+            self.last_event = f"dropped to 1x: {reason}"
+
     def seek(self, sim_time: float):
+        if self.background is not None:
+            raise ValueError("the live cool-down cannot seek: change the speed instead")
         self.events.write(self.clock.seek(sim_time), "clock", f"seek {format_epoch(sim_time)}")
         if hasattr(self.provider, "reset"):           # target model re-initialised from the record
             self.provider.reset(sim_time)
@@ -130,7 +179,11 @@ class SimEngine:
         return {
             "sim_time": now, "sim_local": format_epoch(now), "running": self.clock.running,
             "speed": self.clock.speed, **self.info,
-            "record_start": format_epoch(self.timeline.start), "record_end": format_epoch(self.timeline.end),
+            "record_start": ("live (no record)" if self.background is not None
+                             else format_epoch(self.timeline.start)),
+            "record_end": "" if self.background is not None else format_epoch(self.timeline.end),
+            "world": self.background.status() if self.background is not None else {},
+            "warp": self._warp is not None, "auto_drop": self.auto_drop,
             "faults": {n: h.emulator.fault.get() for n, h in self.host.hosted.items()},
             "autopilot": dict(self.autopilot), "truth": truth, "last_event": self.last_event,
             "stop_requested": self.stop_requested.is_set(),
@@ -150,6 +203,20 @@ class SimEngine:
         elif cmd == "speed":
             self.set_speed(float(request["value"]))
             self.last_event = f"speed {float(request['value']):g}x"
+        elif cmd == "world":
+            if self.background is None:
+                raise ValueError("world actions need the live cool-down (--source warm)")
+            self.background.advance(self.clock.now())
+            action = str(request["action"])
+            detail = self.background.act(action, request.get("value"))
+            self.events.write(self.clock.now(), "world", detail)
+            self.last_event = detail
+            if action in ("start_cooldown", "insert", "warm_up") and not self.clock.running:
+                self.play()                      # an automatic stage starts at once
+        elif cmd == "auto_drop":
+            self.auto_drop = bool(request["on"])
+            self.events.write(self.clock.now(), "warp", f"auto drop to 1x {'on' if self.auto_drop else 'off'}")
+            self.last_event = f"auto drop to 1x {'on' if self.auto_drop else 'off'}"
         elif cmd == "seek":
             self.seek(float(request["value"]))
             self.last_event = f"seek {format_epoch(float(request['value']))}"

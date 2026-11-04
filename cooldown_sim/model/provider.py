@@ -14,7 +14,7 @@ from __future__ import annotations
 import math
 
 from ..providers import ReplayProvider
-from .target import TargetModel
+from .target import TargetModel, field_from_current
 
 THERMO_INSTRUMENTS = ("ls224_fridge", "ls224_magnet")
 #: Roots-line flowmeter IOC -> side
@@ -36,6 +36,15 @@ class ModelProvider(ReplayProvider):
         self.model = TargetModel(timeline, t0, params, cooldown)
         self.host = None                 # set by the engine: lets inputs drive emulators
         self.fit_P = float("nan")        # online fitter's latest P (%), set by the NMR leg
+        #: the interactive warm start's live cryostat (synth/live.py), or None
+        self.background = timeline if hasattr(timeline, "act") else None
+        self._inserts = 0
+        self._magnet_quenched = False
+        if self.background is not None:
+            # Elena Long (2026-11-04): a live magnet -- the field is the IPS120
+            # emulator's, so a ramp moves the NMR line and the DNP optimum
+            self.model.field_source = self.magnet_field_T
+            self.background.field_fn = self.magnet_field_T
 
     def recorded(self, instrument: str, channel: str, t: float) -> float:
         base = super().recorded(instrument, channel, t)
@@ -53,6 +62,54 @@ class ModelProvider(ReplayProvider):
             return self.model.roots_flow(ROOTS_FLOWMETERS[instrument], base, t)
         self.model.advance(t)
         return base
+
+    # ------------------------------------------------------- live magnet
+    def _magnet(self):
+        h = self.host.hosted.get("ips120") if self.host else None
+        return h.emulator if h is not None else None
+
+    def magnet_field_T(self) -> float:
+        """Field at the target (T) from the emulated supply's magnet current."""
+        emu = self._magnet()
+        if emu is None:
+            return 0.0
+        with emu._lock:
+            emu.advance()
+            amps = emu.magnet
+        return field_from_current(amps)
+
+    def live_tick(self) -> None:
+        """Once a second (the session loop): couple the live cryostat, the
+        magnet supply and the target model."""
+        bg = self.background
+        if bg is None:
+            return
+        t = self.clock.now()
+        bg.advance(t)
+        if bg.inserts != self._inserts:              # a new target: unpolarized
+            self._inserts = bg.inserts
+            with self.model._lock:
+                self.model.advance(t)
+                s = self.model.state
+                s.P = s.Q = 0.0
+                s.Pe = float("nan")
+        emu = self._magnet()
+        if emu is None:
+            return
+        with emu._lock:
+            emu.advance()
+            quenched, amps = emu.system == 1, abs(emu.magnet)
+        # the solenoid out of its helium with current in it quenches
+        if not quenched and amps > 1.0 and bg.w.magnet_level < 3.0:
+            emu.quench()
+            quenched = True
+        if quenched and not self._magnet_quenched:
+            bg.magnet_quenched()
+        self._magnet_quenched = quenched
+
+    def nmr_up(self) -> bool:
+        """False while the live cryostat has the NMR down (a target insert)."""
+        return self.background.nmr_up() if self.background is not None else True
 
     # ------------------------------------------------------------ control
     def truth(self, t: float) -> dict:
@@ -74,9 +131,14 @@ class ModelProvider(ReplayProvider):
             raise ValueError(f"unknown model input {key!r}")
         if key == "mw_mode" or key.startswith("mw_"):
             inp.mw_mode = "operator"
+        was = getattr(inp, key)
         setattr(inp, key, INPUT_KEYS[key](value))
         if key == "coldboard_heat_W":
             self._show_coldboard(float(value))
+        if key == "quench" and bool(value) and not was and self.background is not None:
+            emu = self._magnet()                     # a live magnet quenches with the target
+            if emu is not None:
+                emu.quench()
 
     def observe_mw(self, on: bool, freq_GHz: float, power_dB: float,
                    uca_V: float = float("nan")) -> bool:
