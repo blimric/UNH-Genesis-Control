@@ -373,7 +373,8 @@ def test_no_stray_labels_and_buttons_in_card_headers():
     text = BOB.read_text(encoding="utf-8")
     assert "S1-S3" not in text and "LHe / gas" not in text and "mbar" not in text
     widgets = _by_name()
-    for card, bob in (("Magnet", "genesis_cryo_magnet.bob"), ("Fridge", "genesis_cryo_fridge.bob"),
+    # the Magnet Space card opens the magnet controller (Elena Long, 2026-11-04)
+    for card, bob in (("Magnet", "genesis_magnet.bob"), ("Fridge", "genesis_cryo_fridge.bob"),
                       ("Microwaves", "genesis_microwave.bob")):
         btn, head = widgets[f"Card_{card}_Link"], widgets[f"Card_{card}_Header"]
         assert btn.findtext("actions/action/file") == bob

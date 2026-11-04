@@ -398,7 +398,8 @@ def header():
 
 def magnet_space():
     x, y = 4, 48
-    w = [card("Magnet Space", x, y, 610, 232, "Magnet", ("Magnet", "genesis_cryo_magnet.bob"))]
+    # Elena Long (2026-11-04): the Magnet button opens the magnet controller
+    w = [card("Magnet Space", x, y, 610, 232, "Magnet", ("Magnet", "genesis_magnet.bob"))]
     w.append(history_plot("MagnetLevel", "Magnet LHe level (in)", 12, 80, 160, 192, "LEVEL",
                           [("Magnet LHe", "Magnet_LI", LHE_BLUE, 0)], [("in", False, 0, 31)], 40))
     w.append(history_plot("MagnetThermometry", "Magnet thermometry (K)", 178, 80, 330, 176, "MAG",
