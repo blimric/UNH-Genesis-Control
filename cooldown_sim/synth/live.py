@@ -101,6 +101,19 @@ EXCESS = {"F3": (0.8, 7.0, 24.0), "F4": (0.5, 4.0, 14.0), "F5": (0.3, 2.0, 7.0),
           "F6": (0.2, 0.6, 3.5), "F7": (0.05, 0.25, 0.4), "F8": (0.08, 0.45, 0.9),
           "F9": (-0.1, -0.08, -0.1), "F10": (0.03, 0.1, 0.15), "F11": (0.0, 0.02, 0.05),
           "T1": (0.05, 0.03, 0.15), "T3": (0.08, 0.05, 0.25)}
+#: Elena Long (2026-11-04): a thermometer under the liquid reads the liquid's
+#: temperature -- its plot follows the vapour pressure -- apart from a small
+#: calibration offset; only the uncovered ones read warmer (EXCESS) and lag.
+#: Fridge LHe level reading (in) at which each is covered (top -> bottom: F3/F4,
+#: F5, F6, F8, F7, F9, F10, F11, then the cup below F11)
+SENSOR_HEIGHT_IN = {"F3": 10.5, "F4": 9.0, "F5": 7.0, "F6": 5.0, "F8": 2.5, "F7": 0.0,
+                    "F9": -3.0, "F10": -6.0, "F11": -8.5, "T1": -12.0, "T3": -12.0}
+#: calibration offsets of covered thermometers (K); F9 reads systematically low
+CAL_OFFSET_K = {"F9": -0.08, "F7": 0.01, "F8": 0.02, "F10": 0.01, "T3": 0.02}
+#: fridge level after the cool-down's fill, with no pumping (the separator
+#: keeps it there), and where pumping leaves it (liquid above T1, at or just
+#: below F11; the 2025-11 / 2026-06 records fall ~1.45 in/h while pumped)
+LEVEL_FILLED_IN, LEVEL_PUMPED_IN, LEVEL_FALL_IN_PER_H = 4.0, -9.0, 1.45
 #: sensor time constants while cold (s): the cup responds within a couple of minutes
 SENSOR_TAU = {"T1": 60.0, "T3": 90.0, "F11": 1500.0, "F9": 1200.0, "F10": 1000.0}
 DEFAULT_SENSOR_TAU = 600.0
@@ -358,7 +371,7 @@ class LiveBackground:
         w = self.w
         w.cell = relax(w.cell, 760.0, 600.0, dt)
         w.flow = FLOW_ZERO + 15.0 + 85.0 * min(age / FRIDGE_COOL_S, 1.0)
-        w.fridge_level = -16.0 + 28.0 * min(age / (FRIDGE_COOL_S + 2 * CONVERGE_TAU_S), 1.0)
+        w.fridge_level = -16.0 + (LEVEL_FILLED_IN + 16.0) * min(age / (FRIDGE_COOL_S + 2 * CONVERGE_TAU_S), 1.0)
         for s, (target, _b, _r) in TOP.items():
             w.temps[s] = relax(w.temps[s], target, TOP_TAU_S, dt)
         if age < FRIDGE_COOL_S:
@@ -394,11 +407,13 @@ class LiveBackground:
         target, tau = self._bath_target()
         w.bath = relax(w.bath, target, tau, dt)
         w.cell = CELL_ATM_TORR if (not w.backing and w.bath >= BATH_4K - 0.02) else ph.he4_p90_torr(w.bath)
-        for s in BATH_REGION:
-            if s in CUP and not w.sensors_up:
-                continue
-            w.temps[s] = relax(w.temps[s], w.bath + interp_excess(s, w.bath),
-                               SENSOR_TAU.get(s, DEFAULT_SENSOR_TAU), dt)
+        # the level falls while pumped, to just above the cup; the separator
+        # tops it back up with no pumping
+        if w.backing:
+            w.fridge_level = max(LEVEL_PUMPED_IN, w.fridge_level - LEVEL_FALL_IN_PER_H * dt / 3600.0)
+        else:
+            w.fridge_level = relax(w.fridge_level, LEVEL_FILLED_IN, 7200.0, dt)
+        self._bath_sensors(dt)
         col = 2 if (w.backing and w.roots) else 1 if w.backing else 0
         for s, values in TOP.items():
             w.temps[s] = relax(w.temps[s], values[col] if col else values[0], TOP_TAU_S, dt)
@@ -411,27 +426,36 @@ class LiveBackground:
             w.flow = relax(w.flow, FLOW_BACKING + (5.0 if w.cell_leak else 0.0), 300.0, dt)
         else:
             w.flow = relax(w.flow, FLOW_ZERO, 60.0, dt)
-        w.fridge_level = relax(w.fridge_level, 10.0, 3600.0, dt)
+
+    def covered(self, sensor: str) -> bool:
+        """True while ``sensor`` is under the liquid (it reads the liquid's temperature)."""
+        w = self.w
+        h = SENSOR_HEIGHT_IN.get(sensor)
+        return bool(w.liquid and h is not None and w.fridge_level >= h)
+
+    def _bath_sensors(self, dt: float, tau_cap: float = math.inf) -> None:
+        """Covered sensors read the bath (plus calibration offset), at once; the
+        others relax toward the bath plus their excess."""
+        w = self.w
+        for s in BATH_REGION:
+            if s in CUP and not w.sensors_up:
+                continue
+            if self.covered(s):
+                w.temps[s] = w.bath + CAL_OFFSET_K.get(s, 0.0)
+            else:
+                w.temps[s] = relax(w.temps[s], w.bath + interp_excess(s, w.bath),
+                                   min(SENSOR_TAU.get(s, DEFAULT_SENSOR_TAU), tau_cap), dt)
 
     def _insert_step(self, dt: float, age: float) -> None:
         w = self.w
         w.bath = relax(w.bath, BATH_4K + 0.05, 180.0, dt)   # no longer superfluid: up to ~4.2 K
         w.cell = relax(w.cell, CELL_ATM_TORR, 120.0, dt)
         w.flow = relax(w.flow, FLOW_ZERO, 60.0, dt)
-        w.fridge_level = relax(w.fridge_level, 5.0, 600.0, dt)
-        for s in BATH_REGION:
-            if s in CUP:
-                continue
-            w.temps[s] = relax(w.temps[s], w.bath + interp_excess(s, w.bath),
-                               min(SENSOR_TAU.get(s, DEFAULT_SENSOR_TAU), 300.0), dt)
+        w.fridge_level = relax(w.fridge_level, LEVEL_FILLED_IN, 7200.0, dt)
         if not w.sensors_up and age >= INSERT_SENSORS_S:
             w.sensors_up = True
-            for s in CUP:
-                w.temps[s] = 8.0                 # the new stick's thermometers come alive
             self.events.append("target stick in: T1/T3 reading")
-        if w.sensors_up:
-            for s in CUP:
-                w.temps[s] = relax(w.temps[s], w.bath + interp_excess(s, w.bath), 180.0, dt)
+        self._bath_sensors(dt, tau_cap=300.0)
         if age >= INSERT_NMR_S:
             w.nmr_up = True
             self.events.append("NMR back (no signal yet): backing pump on next")
@@ -597,6 +621,8 @@ class LiveBackground:
         with self._lock:
             w = self.w
             return {"phase": w.phase, "phase_text": PHASE_TEXT.get(w.phase, w.phase), "hint": self.hint(),
+                    "fridge_level_in": w.fridge_level,
+                    "covered": [s for s in BATH_REGION if self.covered(s)],
                     "backing": w.backing, "roots": w.roots, "filling": w.filling,
                     "shells_leak": w.shells_leak, "cell_leak": w.cell_leak,
                     "magnet_level_in": w.magnet_level, "bath_K": w.bath if w.liquid else NAN,

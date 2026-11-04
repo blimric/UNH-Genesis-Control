@@ -164,6 +164,8 @@ class State:
     dT_mag: dict = field(default_factory=dict)
     burn_heat_W: float = 0.0
     Pe: float = float("nan")          # electron polarization (spin-1 rate model only)
+    #: microwave heating of the cup thermometers (live cool-down), K
+    dT_mw_cup: dict = field(default_factory=dict)
 
 
 class TargetModel:
@@ -188,6 +190,9 @@ class TargetModel:
         #: () -> the field (T) from a live magnet (the interactive warm start's
         #: IPS120 emulator), instead of the record's (Elena Long, 2026-11-04)
         self.field_source = None
+        #: live cool-down: what the microwaves add to the cup thermometers at
+        #: full drive (K; Ells 2026-11-04: T1 and T3 rise ~0.5-1 K with RF on)
+        self.cup_mw_K: dict = {}
         self.state = self._initial(t0)
 
     # ----------------------------------------------------------- history
@@ -402,6 +407,8 @@ class TargetModel:
         s.dflow = relax(s.dflow, (q_target + q_cb) / self.heat["W_per_slm"], self.heat["flow_tau_s"])
         for ch, gain in self.mag_gain.items():
             s.dT_mag[ch] = relax(s.dT_mag.get(ch, 0.0), gain * (d_op - d_hist), self.thermal_tau)
+        for ch, k in self.cup_mw_K.items():
+            s.dT_mw_cup[ch] = relax(s.dT_mw_cup.get(ch, 0.0), k * max(d_op - d_hist, 0.0), 60.0)
         s.q = relax(s.q, 1.0 if self.inputs.quench else 0.0,
                     qa["rise_tau_s"] if self.inputs.quench else qa["recovery_tau_s"])
 
@@ -445,7 +452,12 @@ class TargetModel:
         if not math.isfinite(hist_value):
             return hist_value
         qa = self.assumed["quench"]
-        v = hist_value + s.dT_mag.get(channel, 0.0)
+        v = hist_value + s.dT_mag.get(channel, 0.0) + s.dT_mw_cup.get(channel, 0.0)
+        # a thermometer under the live cryostat's liquid reads the bath, so it
+        # warms with the bath (microwave and cold-board heat) as the VP does
+        covered = getattr(self.tl, "covered", None)
+        if covered is not None and covered(channel):
+            v += s.dT_bath
         target = qa["magnet_target_K"] if channel.startswith("M") else qa["fridge_target_K"]
         return v + s.q * max(target - v, 0.0)
 

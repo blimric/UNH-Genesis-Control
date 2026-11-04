@@ -17,6 +17,9 @@ from ..providers import ReplayProvider
 from .target import TargetModel, field_from_current
 
 THERMO_INSTRUMENTS = ("ls224_fridge", "ls224_magnet")
+#: live cool-down: microwave rise of the cup thermometers at full drive (K;
+#: Ells 2026-11-04, "about 0.5 to 1 K")
+LIVE_CUP_MW_K = {"T1": 0.8, "T3": 0.6}
 #: Roots-line flowmeter IOC -> side
 ROOTS_FLOWMETERS = {"flowmeter_left": "L", "flowmeter_pi": "R"}
 
@@ -45,6 +48,7 @@ class ModelProvider(ReplayProvider):
             # emulator's, so a ramp moves the NMR line and the DNP optimum
             self.model.field_source = self.magnet_field_T
             self.background.field_fn = self.magnet_field_T
+            self.model.cup_mw_K = dict(LIVE_CUP_MW_K)
 
     def recorded(self, instrument: str, channel: str, t: float) -> float:
         base = super().recorded(instrument, channel, t)

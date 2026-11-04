@@ -72,7 +72,7 @@ def test_backing_pump_then_roots_then_insert():
     assert spike > 30.0                                          # the switch-on spike
     assert bg.value_at("T1", t + 300.0) < 1.4                   # the cup answers within minutes
     t += 3600.0
-    assert bg.value_at("T1", t) == pytest.approx(1.25, abs=0.05)
+    assert bg.value_at("T1", t) == pytest.approx(live.BATH_ROOTS, abs=0.02)   # under the liquid
     assert bg.value_at("roots_flow_r", t) < 10.0
     # target stick insert: pumps off, T1/T3 and the NMR down, the bath to ~4.2 K
     bg.act("insert")
@@ -286,3 +286,42 @@ def test_no_bath_until_there_is_liquid():
     bg.act("start_cooldown")
     t = run_until(bg, "cold", T0)
     assert prov.model.hist_bath_T(t) == pytest.approx(live.BATH_BACKING, abs=0.06)
+
+
+def test_covered_thermometers_read_the_liquid_and_follow_the_vapour_pressure():
+    # Ells (2026-11-04): under the liquid a thermometer reads the liquid's
+    # temperature (plus a small calibration offset); only uncovered ones are warmer
+    bg = LiveBackground(T0)
+    bg.act("start_cooldown")
+    t = run_until(bg, "cold", T0)
+    bg.act("roots", 1)
+    for dt in (60.0, 300.0, 1800.0, 4 * 3600.0, 12 * 3600.0):
+        bg.advance(t + dt)
+        vp = bg.value_at("vp_temp", t + dt)
+        for s in BATH_REGION:
+            T = bg.value_at(s, t + dt)
+            if bg.covered(s):
+                assert T == pytest.approx(vp, abs=0.1), (s, dt)
+            else:
+                assert T > vp - 0.15, (s, dt)                # F9 reads a little low
+    # the level falls while pumped to just above the cup: T1 stays covered
+    assert bg.w.fridge_level == pytest.approx(live.LEVEL_PUMPED_IN)
+    assert bg.covered("T1") and bg.covered("T3") and not bg.covered("F7")
+    assert bg.value_at("F3", t + 12 * 3600.0) > 10.0           # well above the liquid
+
+
+def test_microwaves_warm_t1_and_t3_by_about_a_kelvin():
+    from cooldown_sim import channel_map
+    from cooldown_sim.clock import SimClock
+    from cooldown_sim.model.provider import ModelProvider
+    bg = LiveBackground(T0)
+    bg.act("start_cooldown")
+    t = run_until(bg, "cold", T0)
+    prov = ModelProvider(bg, channel_map.load(), SimClock(t, 1.0, running=False), t0=t)
+    cold = prov.recorded("ls224_magnet", "T1", t)
+    prov.model.inputs.mw_mode, prov.model.inputs.mw_on = "operator", True
+    prov.model.inputs.mw_uca_V, prov.model.inputs.mw_freq_GHz = 0.0, 140.0
+    warm = prov.recorded("ls224_magnet", "T1", t + 600.0)
+    assert 0.5 <= warm - cold <= 1.0
+    prov.model.inputs.mw_on = False
+    assert prov.recorded("ls224_magnet", "T1", t + 1200.0) - cold < 0.1
