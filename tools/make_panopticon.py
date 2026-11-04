@@ -681,7 +681,6 @@ def insert_cartoon():
     w.append(field("Dopant (MW supervisor)", f"{MW}:SUP:Dopant", 626, 112, 180, 11))
     w.append(placeholder("TargetStick", "Target stick", 812, 112, 180, "Target stick selection"))
     drawing = [_place(d) for d in _insert_drawing()]
-    w.extend(drawing)
     boxes = dict(_box(d) for d in drawing)
     # thermometers: marker, leader line, readout box (screen coordinates)
     half = MARKER / 2
@@ -693,6 +692,14 @@ def insert_cartoon():
             cy = {"above": boxes[part][1] - half, "below": boxes[part][3] + half,
                   "top": boxes[part][1], "bottom": boxes[part][3]}[side]
         marks[sensor] = (round(cx), cy)
+    # the fridge's liquid, just above the can and the nose (Elena Long, 2026-11-04)
+    can_fill, nose_fill = fridge_fill(boxes["Shape_Fridge_Can"], boxes["Shape_Nose"], marks)
+    for d in drawing:
+        w.append(d)
+        if "<name>Shape_Fridge_Can</name>" in d:
+            w.append(can_fill)
+        elif "<name>Shape_Nose</name>" in d:
+            w.append(nose_fill)
     # one column of value boxes in the markers' top-to-bottom order; the
     # magnet sensors' boxes are set off to the right of the fridge's
     # route each line's run across (top to bottom), then stack the value
@@ -721,6 +728,105 @@ def insert_cartoon():
         w.append(rect(round(cx - half), round(cy - half), MARKER, MARKER, rgb, (30, 30, 30),
                       name=f"Marker_{sensor}"))
     return w
+
+
+#: liquid helium fills (Elena Long, 2026-11-04): the magnet's below its
+#: measured level, the fridge's below its covered thermometers; behind every
+#: other detail of the drawing
+MAGNET_LHE_FILL = (110, 165, 228)
+FRIDGE_LHE_FILL = (135, 195, 240)
+#: the fridge thermometers that can sit in the liquid, and the closeness to the
+#: vapour-pressure temperature that means covered (Ells's level rule)
+FRIDGE_BATH = ("F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "T1", "T3")
+COVERED_K = 0.1
+
+
+def lhe_fill(axis_x, lo_in, hi_in, half, name):
+    """The magnet LHe below its level within one part of the space (lo_in-hi_in
+    on the depth scale, half-width ``half``): full above hi_in, up to the level
+    between, hidden below lo_in.  y and height follow Magnet_LI by rules, in
+    screen coordinates like lhe_line."""
+    a_screen = INSERT_DST[1] + (LEVEL_Y0 - INSERT_SRC[1]) * INSERT_SCALE
+    b_screen = PX_PER_INCH * INSERT_SCALE
+    top_full = a_screen - b_screen * hi_in
+    bottom = a_screen - b_screen * lo_in + (2 * INSERT_SCALE if lo_in == 0 else 0)
+    xml = rect(axis_x - half, level_y(hi_in), 2 * half, level_y(lo_in) - level_y(hi_in) + (2 if lo_in == 0 else 0),
+               MAGNET_LHE_FILL, name=name, tooltip="Magnet LHe (AMI 135 level)")
+    rules = (f'<rules><rule name="LHe top" prop_id="y" out_exp="true">'
+             f'<exp bool_exp="pv0 &gt;= {hi_in}"><expression>{top_full:.3f}</expression></exp>'
+             f'<exp bool_exp="true"><expression>{a_screen:.3f} - {b_screen:.4f}*pv0</expression></exp>'
+             f"<pv_name>ca://{MAGNET_LEVEL}</pv_name></rule>"
+             f'<rule name="LHe depth" prop_id="height" out_exp="true">'
+             f'<exp bool_exp="pv0 &gt;= {hi_in}"><expression>{bottom - top_full:.3f}</expression></exp>'
+             f'<exp bool_exp="true"><expression>{bottom - a_screen:.3f} + {b_screen:.4f}*pv0</expression></exp>'
+             f"<pv_name>ca://{MAGNET_LEVEL}</pv_name></rule>"
+             f'<rule name="LHe shown" prop_id="visible" out_exp="false">'
+             f'<exp bool_exp="pv0 &gt; {lo_in} &amp;&amp; pv0 &lt;= 60"><value>true</value></exp>'
+             f"<pv_name>ca://{MAGNET_LEVEL}</pv_name></rule></rules>")
+    return xml.replace("</widget>", f"<visible>false</visible>{rules}</widget>")
+
+
+FRIDGE_FILL_SCRIPT = """from org.csstudio.display.builder.runtime.script import PVUtil, ScriptUtil
+import math
+# Elena Long (2026-11-04): the fridge LHe fill reaches the highest covered
+# thermometer -- one within COVERED of the vapour-pressure temperature (pv0),
+# or, above Manometer-Lo's range, of the coldest bath reading
+names = NAMES
+ys = YS
+temps = []
+for i in range(len(names)):
+    try:
+        temps.append(PVUtil.getDouble(pvs[i + 1]))
+    except Exception:
+        temps.append(float("nan"))
+good = [t for t in temps if not math.isnan(t) and 0.5 < t < 5.5]
+try:
+    ref = PVUtil.getDouble(pvs[0])
+except Exception:
+    ref = float("nan")
+if math.isnan(ref) or not 0.5 < ref < 5.5:
+    ref = min(good) if good else float("nan")
+covered = [ys[i] for i in range(len(names))
+           if not math.isnan(temps[i]) and not math.isnan(ref) and abs(temps[i] - ref) <= COVERED]
+nose = ScriptUtil.findWidgetByName(widget, "Fridge_LHe_Fill_Nose")
+if covered:
+    top = min(covered) - MARGIN
+    can_top = max(top, CAN_TOP)
+    widget.setPropertyValue("y", int(can_top))
+    widget.setPropertyValue("height", int(max(CAN_BOTTOM - can_top, 0)))
+    widget.setPropertyValue("visible", top < CAN_BOTTOM)
+    if nose is not None:
+        nose_top = max(top, NOSE_TOP)
+        nose.setPropertyValue("y", int(nose_top))
+        nose.setPropertyValue("height", int(max(NOSE_BOTTOM - nose_top, 0)))
+        nose.setPropertyValue("visible", True)
+else:
+    widget.setPropertyValue("visible", False)
+    if nose is not None:
+        nose.setPropertyValue("visible", False)
+"""
+
+
+def fridge_fill(can_box, nose_box, marks):
+    """The fridge LHe fill (can and nose), set by a script from the thermometers."""
+    from xml.sax.saxutils import escape as esc
+    names = [s for s in FRIDGE_BATH if s in marks]
+    ys = [int(round(marks[s][1])) for s in names]
+    script = (FRIDGE_FILL_SCRIPT.replace("NAMES", repr(names)).replace("YS", repr(ys))
+              .replace("COVERED", repr(COVERED_K)).replace("MARGIN", "6")
+              .replace("CAN_TOP", str(int(can_box[1]))).replace("CAN_BOTTOM", str(int(can_box[3])))
+              .replace("NOSE_TOP", str(int(nose_box[1]))).replace("NOSE_BOTTOM", str(int(nose_box[3]))))
+    pvs = [f'<pv_name trigger="true">ca://{CRYO}:VAC:LOW:Mano_VapT</pv_name>']
+    pvs += [f'<pv_name trigger="true">ca://{thermometer_pv(s)}</pv_name>' for s in names]
+    scripts = f'<scripts><script file="EmbeddedPy"><text>{esc(script)}</text>{"".join(pvs)}</script></scripts>'
+    can = rect(int(can_box[0]) + 1, int(can_box[1]) + 1, int(can_box[2] - can_box[0]) - 2,
+               int(can_box[3] - can_box[1]) - 2, FRIDGE_LHE_FILL, name="Fridge_LHe_Fill",
+               tooltip="Fridge LHe: up to the highest thermometer reading the vapour-pressure temperature")
+    nose = rect(int(nose_box[0]) + 1, int(nose_box[1]), int(nose_box[2] - nose_box[0]) - 2,
+                int(nose_box[3] - nose_box[1]) - 1, FRIDGE_LHE_FILL, name="Fridge_LHe_Fill_Nose")
+    can = can.replace("</widget>", f"<visible>false</visible>{scripts}</widget>")
+    nose = nose.replace("</widget>", "<visible>false</visible></widget>")
+    return can, nose
 
 
 def lhe_line(axis_x):
@@ -754,6 +860,9 @@ def _insert_drawing():
                       (a - BORE_HALF, support_y), (a - BORE_HALF, bottom), (a + BORE_HALF, bottom),
                       (a + BORE_HALF, support_y), (a + BELLY_HALF, support_y), (a + BELLY_HALF, b),
                       (a + NECK_HALF, b), (a + NECK_HALF, n)], DEWAR, NAVY, 2, name="Magnet_LHe_Space"))
+    # the liquid below the level, behind everything else (Elena Long, 2026-11-04)
+    w.append(lhe_fill(a, 0.0, BELLY_IN[0], BORE_HALF, "Magnet_LHe_Fill_Bore"))
+    w.append(lhe_fill(a, BELLY_IN[0], NECK_IN, BELLY_HALF, "Magnet_LHe_Fill_Belly"))
     for inch in range(0, 31, 5):
         yy = level_y(inch)
         w.append(rect(762, yy, 10, 1, NAVY))
