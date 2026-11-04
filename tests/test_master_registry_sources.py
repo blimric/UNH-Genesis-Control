@@ -79,9 +79,9 @@ def test_existing_physical_coverage_unchanged():
         "Cryo": 168,
         "ssRF": 97,
         "Microwave": 124,           # + 7 Expert-mode supervisor records
-        "Magnet": 59,           # magnet_ioc (IPS120-10, V4 port), dev-visualizer
+        "Magnet": 61,           # magnet_ioc (IPS120-10, V4 port; + FINE_STEPS, RESOLUTION)
     }
 
-    assert report["total"] == 448
+    assert report["total"] == 450
     assert len(report["invalid_archive_references"]) == 0
-    assert len(registry) == 448
+    assert len(registry) == 450
