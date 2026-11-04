@@ -77,7 +77,34 @@ def add_parsers(sub) -> None:
     p.add_argument("--port-offset", type=int, default=0)
     p.add_argument("--noise-rel", type=float, default=2e-5)
     p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--phoebus", default=None, metavar="SCREENS",
+                   help="interactive: open Phoebus on these screens once the session is ready "
+                        "(e.g. panopticon,magnet,cryo,mw,fitter)")
     p.set_defaults(func=_run)
+
+    # Elena Long (2026-11-04): the two simulations, one command each
+    p = sub.add_parser("live", help="the live cool-down from warm: every button working, "
+                                    "time warp, screens open (no data needed)")
+    p.add_argument("--legs", default=LIVE_LEGS)
+    p.add_argument("--screens", default=LIVE_SCREENS_DEFAULT)
+    p.add_argument("--speed", type=float, default=1.0)
+    p.add_argument("--port-offset", type=int, default=0)
+    p.add_argument("--seed", type=int, default=0)
+    p.set_defaults(func=_live)
+
+    p = sub.add_parser("history", help="rehearse on a past cool-down's record, screens open "
+                                       "(needs $%s)" % DATA_ENV)
+    p.add_argument("--cooldown", required=True, help="e.g. 2026-06")
+    p.add_argument("--start", required=True, help="lab-local 'YYYY-MM-DD HH:MM'")
+    p.add_argument("--data", default=os.environ.get(DATA_ENV))
+    p.add_argument("--legs", default=LIVE_LEGS)
+    p.add_argument("--screens", default=LIVE_SCREENS_DEFAULT)
+    p.add_argument("--speed", type=float, default=60.0)
+    p.add_argument("--autopilot", default="mw,ssrf,fit",
+                   help="legs the autopilot runs from the record (Human takes them on Sim Control)")
+    p.add_argument("--port-offset", type=int, default=0)
+    p.add_argument("--seed", type=int, default=0)
+    p.set_defaults(func=_history)
 
     p = sub.add_parser("scenario", help="run scripted scenarios (list | NAME ... | all)")
     p.add_argument("names", nargs="+", help="'list', 'all', or scenario names")
@@ -91,7 +118,8 @@ def add_parsers(sub) -> None:
     p.add_argument("command", help="status | play | pause | speed X | seek 'YYYY-MM-DD HH:MM' | "
                                    "jump MIN | fault INSTRUMENT MODE | autopilot LEG on|off | "
                                    "note TEXT | mark | model KEY VALUE | "
-                                   "override INSTRUMENT CHANNEL VALUE|record | magic +|- | stop")
+                                   "override INSTRUMENT CHANNEL VALUE|record | magic +|- | "
+                                   "world ACTION [on|off] | auto_drop on|off | stop")
     p.add_argument("args", nargs="*")
     p.add_argument("--run", help="run directory (default: latest)")
     p.set_defaults(func=_ctl)
@@ -103,6 +131,36 @@ def add_parsers(sub) -> None:
     p = sub.add_parser("stop", help="kill leftover processes of a run")
     p.add_argument("run", nargs="?", help="run directory (default: latest)")
     p.set_defaults(func=_stop)
+
+
+#: the legs and screens the one-command simulations open
+LIVE_LEGS = "cryo,nmr,mw,ssrf"
+LIVE_SCREENS_DEFAULT = "panopticon,magnet,cryo,mw,fitter"
+
+
+def _preset(args, **run) -> int:
+    import argparse
+    ns = argparse.Namespace(
+        mode="interactive", source=run.get("source", "real"), faults="",
+        cooldown=run.get("cooldown"), data=run.get("data"), start=run.get("start"), day=None,
+        duration=None, speed=args.speed, legs=args.legs, scenario="nominal", autostart=False,
+        autopilot=run.get("autopilot"), model=None, nmr_protected=False,
+        port_offset=args.port_offset, noise_rel=2e-5, seed=args.seed, phoebus=args.screens)
+    return _run(ns)
+
+
+def _live(args) -> int:
+    """The live cool-down from warm (Ells, 2026-11-04): everything warm and off;
+    Sim Control's Start Cool-down Sim, pumps, fills, leaks, insert; every
+    Genesis button working; the time warp."""
+    return _preset(args, source="warm")
+
+
+def _history(args) -> int:
+    """A past cool-down's record, interactively, with the autopilot replaying
+    the logged operator actions until you take a leg."""
+    return _preset(args, source="real", cooldown=args.cooldown, start=args.start, data=args.data,
+                   autopilot=args.autopilot)
 
 
 # ------------------------------------------------------------------- helpers
@@ -434,6 +492,23 @@ def _run(args) -> int:
                                 ctl_folder, ctl, set(legs), fitter, cd, burns))
 
 
+def _open_phoebus(run_path: Path, screens: str):
+    """Phoebus on this session's screens (its window outlives nothing: closing it
+    does not end the session)."""
+    import subprocess
+
+    from . import phoebus
+    cmd = phoebus.command(run_path, [s.strip() for s in screens.split(",") if s.strip()])
+    if cmd is None:
+        print("[phoebus] not found: set PHOEBUS_BIN (screens: python -m cooldown_sim phoebus)")
+        return None
+    log = open(run_path / "logs" / "phoebus.log", "ab")
+    proc = subprocess.Popen(cmd, cwd=str(REPO_ROOT), stdout=log, stderr=subprocess.STDOUT,
+                            stdin=subprocess.DEVNULL)
+    print(f"[ok] Phoebus starting: {screens} (log: logs/phoebus.log)")
+    return proc
+
+
 async def _session(args, run, stack, stacks, timeline, cmap, t0, t1, meta, ctl_folder, ctl,
                    legs, fitter, cooldown_dir=None, burns=None) -> int:
     from .__main__ import EXIT_FAIL, EXIT_OK, EXIT_SETUP
@@ -487,6 +562,7 @@ async def _session(args, run, stack, stacks, timeline, cmap, t0, t1, meta, ctl_f
     leg_stop = asyncio.Event()
     leg_tasks = []
     player = None
+    phoebus_proc = None
     interrupted = False
     try:
         engine.start()
@@ -586,6 +662,8 @@ async def _session(args, run, stack, stacks, timeline, cmap, t0, t1, meta, ctl_f
             print("  Screens:  python -m cooldown_sim phoebus")
             print("  Control:  python -m cooldown_sim ctl status|play|pause|speed 60|fault ls224_fridge silent|stop")
             print("  End with End Session on Sim Control, 'ctl stop', or Ctrl+C.\n")
+            if getattr(args, "phoebus", None):
+                phoebus_proc = _open_phoebus(run.path, args.phoebus)
             if args.autostart:
                 engine.play()
         else:
@@ -714,6 +792,10 @@ def _ctl(args) -> int:
         req = {"key": a[0], "value": float(a[1])}
     elif cmd == "magic":
         req = {"sign": a[0] if a else "+"}
+    elif cmd == "world":               # world start_cooldown | world roots on | world backing off
+        req = {"action": a[0], "value": (a[1].lower() in ("on", "1", "true", "leak")) if len(a) > 1 else 1}
+    elif cmd == "auto_drop":
+        req = {"on": a[0].lower() in ("on", "1", "true")}
     elif cmd == "override":            # override tpg262 OVC 2e-3 | override tpg262 OVC record
         value = a[2] if len(a) > 2 else "record"
         req = {"instrument": a[0], "channel": a[1],

@@ -273,3 +273,16 @@ def test_the_field_follows_the_emulated_magnet_and_an_insert_resets_p():
     bg.w.magnet_level = 1.0
     prov.live_tick()
     assert emu.system == 1 and prov.model.field_T(T0) == 0.0
+
+
+def test_no_bath_until_there_is_liquid():
+    # the warm cell's 760 Torr of gas is no vapour pressure: no 4.2 K bath while warm
+    from cooldown_sim import channel_map
+    from cooldown_sim.clock import SimClock
+    from cooldown_sim.model.provider import ModelProvider
+    bg = LiveBackground(T0)
+    prov = ModelProvider(bg, channel_map.load(), SimClock(T0, 1.0, running=False), t0=T0)
+    assert prov.model.hist_bath_T(T0) == pytest.approx(live.ROOM_K)       # falls back to T1
+    bg.act("start_cooldown")
+    t = run_until(bg, "cold", T0)
+    assert prov.model.hist_bath_T(t) == pytest.approx(live.BATH_BACKING, abs=0.06)

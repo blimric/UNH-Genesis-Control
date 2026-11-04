@@ -603,6 +603,13 @@ class LiveBackground:
                     "cell_torr": w.cell, "sensors_up": w.sensors_up, "nmr_up": w.nmr_up,
                     "auto": w.phase in WALL_TARGET_S}
 
+    def bath_temperature(self, t: float) -> float:
+        """The helium bath (K) at t, NaN before there is liquid."""
+        with self._lock:
+            if t >= self.w.t:
+                self.advance(t)
+            return float(self.w.bath) if self.w.liquid else NAN
+
     def nmr_up(self) -> bool:
         with self._lock:
             return self.w.nmr_up

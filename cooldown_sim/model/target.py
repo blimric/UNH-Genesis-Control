@@ -269,7 +269,12 @@ class TargetModel:
     def hist_bath_T(self, t: float) -> float:
         """Recorded bath temperature: T90 from the cell manometers (the lab's
         offline conversion, trusted over LabVIEW's online vp_temp), else
-        vp_temp, else T1."""
+        vp_temp, else T1.  A live cryostat (synth/live.py) knows its bath
+        itself: none before the liquid collects (the cell's 760 Torr of warm
+        gas is no vapour pressure)."""
+        if hasattr(self.tl, "bath_temperature"):
+            T = self.tl.bath_temperature(t)
+            return T if math.isfinite(T) else self._first_valid_T(("T1",), t)
         T = self.hist_vp_T90(t)
         return T if math.isfinite(T) else self._first_valid_T(("vp_temp", "T1"), t)
 
