@@ -153,8 +153,8 @@ def slider(pv, x, y, w, h, lo, hi):
 def warp_card(x, y, w):
     """Speed slider (0 paused, clicks at 1x), warp state, auto drop to 1x."""
     from cooldown_sim import warp
-    w.append(card("Time warp", x, y, 680, 240))
-    sx, sw = x + 25, 630
+    w.append(card("Time warp", x, y, 660, 240))
+    sx, sw = x + 20, 615
     w.append(slider(f"{P}:SPEED_POS_CMD", sx, y + 40, sw, 44, 0.0, warp.TOP))
     for text, pos in warp.MARKS.items():
         cx = sx + int(round(pos / warp.TOP * (sw - 24))) + 12
@@ -174,7 +174,7 @@ def warp_card(x, y, w):
 
 def world_card(x, y, w):
     """The live cool-down from warm (``--source warm``): Ells's world buttons."""
-    w.append(card("Live cool-down (--source warm)", x, y, 660, 240))
+    w.append(card("Live cool-down (--source warm)", x, y, 680, 240))
     w.append(led(f"{P}:LIVE", x + 15, y + 38, 18))
     w.append(update(f"{P}:WORLD_PHASE", x + 40, y + 34, 300, 26, 12, True))
     w.append(update(f"{P}:WORLD_HINT", x + 345, y + 34, 300, 26, 10))
@@ -218,7 +218,11 @@ def build() -> str:
     w.append(update(f"{P}:RUN_DIR", 800, 34, 580, 22, 9))
 
     # clock card
-    x, y = 20, 80
+    # Elena Long (2026-11-04): the live cool-down and the time warp go on top
+    world_card(20, 80, w)
+    warp_card(720, 80, w)
+
+    x, y = 20, 335
     w.append(card("Sim clock", x, y, 680, 250))
     w.append(label("Sim time (lab-local)", x + 15, y + 40, 200, 24, 11, False, MUTED))
     w.append(update(f"{P}:SIM_DATETIME", x + 15, y + 64, 330, 40, 20, True))
@@ -242,7 +246,7 @@ def build() -> str:
     w.append(update(f"{P}:ENGINE_OK", x + 545, y + 205, 120, 24, 10))
 
     # session card
-    x, y = 720, 80
+    x, y = 720, 335
     w.append(card("Session", x, y, 660, 250))
     for i, (lab, pv) in enumerate((("Mode", "MODE"), ("Scenario", "SCENARIO"), ("Source", "SOURCE"))):
         w.append(label(lab, x + 15, y + 40 + i * 30, 90, 26, 11, False, MUTED))
@@ -260,7 +264,7 @@ def build() -> str:
                             "after-action report will be written.", bg=(245, 205, 205)))
 
     # faults card
-    x, y = 20, 345
+    x, y = 20, 600
     w.append(card("Instrument faults (emulated hardware)", x, y, 680, 330))
     rows = (len(FAULT_INSTRUMENTS) + 1) // 2           # two columns
     for i, inst in enumerate(FAULT_INSTRUMENTS):
@@ -274,7 +278,7 @@ def build() -> str:
                    650, 22, 9, False, MUTED))
 
     # target model card
-    x, y = 720, 345
+    x, y = 720, 600
     w.append(card("Target model (truth, closed loop)", x, y, 660, 330))
     w.append(led(f"{P}:MODEL_ACTIVE", x + 15, y + 40, 18))
     w.append(update(f"{P}:MODEL_ACTIVE", x + 40, y + 37, 200, 24, 11, True))
@@ -313,7 +317,7 @@ def build() -> str:
     w.append(button("Clear quench", f"{P}:QUENCH_CMD", 0, x + 519, yb, 120, 30))
 
     # autopilot + navigation card
-    x, y = 20, 690
+    x, y = 20, 945
     w.append(card("Autopilot (replays the logged operator actions)", x, y, 680, 230))
     for i, leg in enumerate(AUTOPILOT_LEGS):
         yy = y + 40 + i * 40
@@ -329,11 +333,7 @@ def build() -> str:
                                      ("ssRF", "genesis_ssrf.bob"), ("NMR fitter", "genesis_ssrf_fitter.bob"))):
         w.append(open_button(text, f"../../gui/{bob}", x + 15 + i * 165, y + 190, 155, 30))
 
-    w.append(history_plot(720, 690, 660, 230))
-
-    # Elena Long (2026-11-04): time warp and the live cool-down's world
-    warp_card(20, 935, w)
-    world_card(720, 935, w)
+    w.append(history_plot(720, 945, 660, 230))
 
     body = "\n  ".join(w)
     return (f'<?xml version="1.0" encoding="UTF-8"?>\n<display version="2.0.0">\n'
