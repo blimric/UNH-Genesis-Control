@@ -94,6 +94,8 @@ if widget.getUserData("fridge_range_done") is None:
   <widget type="label" version="2.0.0"><name>Label74</name><text>Target stick</text><x>812</x><y>112</y><width>180</width><height>15</height><font><font family="Liberation Sans" style="REGULAR" size="9.0"/></font><foreground_color><color red="120" green="120" blue="120" alpha="255"/></foreground_color><transparent>true</transparent><horizontal_alignment>0</horizontal_alignment><vertical_alignment>1</vertical_alignment><tooltip>Target stick selection: not in Genesis yet</tooltip></widget><widget type="label" version="2.0.0"><name>Placeholder_TargetStick</name><text>not in Genesis yet</text><x>812</x><y>127</y><width>180</width><height>21</height><font><font family="Liberation Sans" style="ITALIC" size="9.0"/></font><foreground_color><color red="120" green="120" blue="120" alpha="255"/></foreground_color><background_color><color red="230" green="230" blue="230" alpha="255"/></background_color><transparent>false</transparent><horizontal_alignment>1</horizontal_alignment><vertical_alignment>1</vertical_alignment><tooltip>Target stick selection: not in Genesis yet</tooltip></widget>
   <widget type="rectangle" version="2.0.0"><name>Magnet_Dewar_Outer</name><x>661</x><y>342</y><width>207</width><height>565</height><line_width>1</line_width><line_color><color red="150" green="170" blue="200" alpha="255" /></line_color><transparent>true</transparent></widget>
   <widget type="polygon" version="2.0.0"><name>Magnet_LHe_Space</name><x>666</x><y>342</y><width>198</width><height>561</height><points><point x="18.0" y="0.0" /><point x="18.0" y="216.5" /><point x="0.0" y="216.5" /><point x="0.0" y="379.7" /><point x="24.6" y="379.7" /><point x="24.6" y="560.1" /><point x="172.2" y="560.1" /><point x="172.2" y="379.7" /><point x="196.8" y="379.7" /><point x="196.8" y="216.5" /><point x="178.8" y="216.5" /><point x="178.8" y="0.0" /></points><line_width>2</line_width><line_color><color red="0" green="53" blue="145" alpha="255" /></line_color><background_color><color red="204" green="226" blue="246" alpha="255" /></background_color></widget>
+  <widget type="rectangle" version="2.0.0"><name>Magnet_LHe_Fill_Bore</name><x>691</x><y>722</y><width>148</width><height>180</height><line_width>0</line_width><background_color><color red="110" green="165" blue="228" alpha="255" /></background_color><tooltip>Magnet LHe (AMI 135 level)</tooltip><visible>false</visible><rules><rule name="LHe top" prop_id="y" out_exp="true"><exp bool_exp="pv0 &gt;= 16.5"><expression>721.755</expression></exp><exp bool_exp="true"><expression>900.670 - 10.8433*pv0</expression></exp><pv_name>ca://UNH:GEN:CRYO:MAG:LHE:Magnet_LI</pv_name></rule><rule name="LHe depth" prop_id="height" out_exp="true"><exp bool_exp="pv0 &gt;= 16.5"><expression>180.554</expression></exp><exp bool_exp="true"><expression>1.640 + 10.8433*pv0</expression></exp><pv_name>ca://UNH:GEN:CRYO:MAG:LHE:Magnet_LI</pv_name></rule><rule name="LHe shown" prop_id="visible" out_exp="false"><exp bool_exp="pv0 &gt; 0.0 &amp;&amp; pv0 &lt;= 60"><value>true</value></exp><pv_name>ca://UNH:GEN:CRYO:MAG:LHE:Magnet_LI</pv_name></rule></rules></widget>
+  <widget type="rectangle" version="2.0.0"><name>Magnet_LHe_Fill_Belly</name><x>666</x><y>559</y><width>197</width><height>163</height><line_width>0</line_width><background_color><color red="110" green="165" blue="228" alpha="255" /></background_color><tooltip>Magnet LHe (AMI 135 level)</tooltip><visible>false</visible><rules><rule name="LHe top" prop_id="y" out_exp="true"><exp bool_exp="pv0 &gt;= 31.5"><expression>559.106</expression></exp><exp bool_exp="true"><expression>900.670 - 10.8433*pv0</expression></exp><pv_name>ca://UNH:GEN:CRYO:MAG:LHE:Magnet_LI</pv_name></rule><rule name="LHe depth" prop_id="height" out_exp="true"><exp bool_exp="pv0 &gt;= 31.5"><expression>162.649</expression></exp><exp bool_exp="true"><expression>-178.914 + 10.8433*pv0</expression></exp><pv_name>ca://UNH:GEN:CRYO:MAG:LHE:Magnet_LI</pv_name></rule><rule name="LHe shown" prop_id="visible" out_exp="false"><exp bool_exp="pv0 &gt; 16.5 &amp;&amp; pv0 &lt;= 60"><value>true</value></exp><pv_name>ca://UNH:GEN:CRYO:MAG:LHE:Magnet_LI</pv_name></rule></rules></widget>
   <widget type="rectangle" version="2.0.0"><name>Rect75</name><x>652</x><y>901</y><width>8</width><height>1</height><line_width>0</line_width><background_color><color red="0" green="53" blue="145" alpha="255" /></background_color></widget>
   <widget type="label" version="2.0.0"><name>Label76</name><text>0</text><x>633</x><y>896</y><width>20</width><height>12</height><font><font family="Liberation Sans" style="REGULAR" size="8.0" /></font><foreground_color><color red="0" green="53" blue="145" alpha="255" /></foreground_color><transparent>true</transparent><horizontal_alignment>2</horizontal_alignment><vertical_alignment>1</vertical_alignment></widget>
   <widget type="rectangle" version="2.0.0"><name>Rect77</name><x>652</x><y>847</y><width>8</width><height>1</height><line_width>0</line_width><background_color><color red="0" green="53" blue="145" alpha="255" /></background_color></widget>
@@ -123,6 +125,45 @@ if widget.getUserData("fridge_range_done") is None:
   <widget type="rectangle" version="2.0.0"><name>Shape_PumpOut_Line</name><x>824</x><y>245</y><width>33</width><height>13</height><line_width>0</line_width><background_color><color red="64" green="70" blue="80" alpha="255" /></background_color></widget>
   <widget type="rectangle" version="2.0.0"><name>Shape_Flange</name><x>693</x><y>334</y><width>144</width><height>8</height><line_width>0</line_width><background_color><color red="64" green="70" blue="80" alpha="255" /></background_color></widget>
   <widget type="rectangle" version="2.0.0"><name>Shape_Fridge_Can</name><x>720</x><y>342</y><width>89</width><height>348</height><line_width>1</line_width><line_color><color red="85" green="96" blue="108" alpha="255" /></line_color><background_color><color red="246" green="248" blue="251" alpha="255" /></background_color></widget>
+  <widget type="rectangle" version="2.0.0"><name>Fridge_LHe_Fill</name><x>721</x><y>343</y><width>87</width><height>346</height><line_width>0</line_width><background_color><color red="135" green="195" blue="240" alpha="255"/></background_color><tooltip>Fridge LHe: up to the highest thermometer reading the vapour-pressure temperature</tooltip><visible>false</visible><scripts><script file="EmbeddedPy"><text>from org.csstudio.display.builder.runtime.script import PVUtil, ScriptUtil
+import math
+# Elena Long (2026-11-04): the fridge LHe fill reaches the highest covered
+# thermometer -- one within 0.1 of the vapour-pressure temperature (pv0),
+# or, above Manometer-Lo's range, of the coldest bath reading
+names = ['F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'T1', 'T3']
+ys = [440, 450, 478, 564, 592, 583, 619, 635, 664, 766, 828]
+temps = []
+for i in range(len(names)):
+    try:
+        temps.append(PVUtil.getDouble(pvs[i + 1]))
+    except Exception:
+        temps.append(float("nan"))
+good = [t for t in temps if not math.isnan(t) and 0.5 &lt; t &lt; 5.5]
+try:
+    ref = PVUtil.getDouble(pvs[0])
+except Exception:
+    ref = float("nan")
+if math.isnan(ref) or not 0.5 &lt; ref &lt; 5.5:
+    ref = min(good) if good else float("nan")
+covered = [ys[i] for i in range(len(names))
+           if not math.isnan(temps[i]) and not math.isnan(ref) and abs(temps[i] - ref) &lt;= 0.1]
+nose = ScriptUtil.findWidgetByName(widget, "Fridge_LHe_Fill_Nose")
+if covered:
+    top = min(covered) - 6
+    can_top = max(top, 342)
+    widget.setPropertyValue("y", int(can_top))
+    widget.setPropertyValue("height", int(max(690 - can_top, 0)))
+    widget.setPropertyValue("visible", top &lt; 690)
+    if nose is not None:
+        nose_top = max(top, 690)
+        nose.setPropertyValue("y", int(nose_top))
+        nose.setPropertyValue("height", int(max(865 - nose_top, 0)))
+        nose.setPropertyValue("visible", True)
+else:
+    widget.setPropertyValue("visible", False)
+    if nose is not None:
+        nose.setPropertyValue("visible", False)
+</text><pv_name trigger="true">ca://UNH:GEN:CRYO:VAC:LOW:Mano_VapT</pv_name><pv_name trigger="true">ca://UNH:GEN:CRYO:FRIDGE:F3_TI</pv_name><pv_name trigger="true">ca://UNH:GEN:CRYO:FRIDGE:F4_TI</pv_name><pv_name trigger="true">ca://UNH:GEN:CRYO:FRIDGE:F5_TI</pv_name><pv_name trigger="true">ca://UNH:GEN:CRYO:FRIDGE:F6_TI</pv_name><pv_name trigger="true">ca://UNH:GEN:CRYO:FRIDGE:F7_TI</pv_name><pv_name trigger="true">ca://UNH:GEN:CRYO:FRIDGE:F8_TI</pv_name><pv_name trigger="true">ca://UNH:GEN:CRYO:FRIDGE:F9_TI</pv_name><pv_name trigger="true">ca://UNH:GEN:CRYO:FRIDGE:F10_TI</pv_name><pv_name trigger="true">ca://UNH:GEN:CRYO:FRIDGE:F11_TI</pv_name><pv_name trigger="true">ca://UNH:GEN:CRYO:MAG:T1_TI</pv_name><pv_name trigger="true">ca://UNH:GEN:CRYO:MAG:T3_TI</pv_name></script></scripts></widget>
   <widget type="rectangle" version="2.0.0"><name>Shape_Pumping_Tube</name><x>756</x><y>195</y><width>19</width><height>495</height><line_width>0</line_width><background_color><color red="64" green="70" blue="80" alpha="255" /></background_color></widget>
   <widget type="rectangle" version="2.0.0"><name>Coil_Tube_0_864</name><x>735</x><y>350</y><width>2</width><height>18</height><line_width>0</line_width><background_color><color red="184" green="115" blue="51" alpha="255" /></background_color></widget>
   <widget type="rectangle" version="2.0.0"><name>Coil_Tube_0_898</name><x>763</x><y>350</y><width>2</width><height>18</height><line_width>0</line_width><background_color><color red="184" green="115" blue="51" alpha="255" /></background_color></widget>
@@ -163,6 +204,7 @@ if widget.getUserData("fridge_range_done") is None:
   <widget type="rectangle" version="2.0.0"><name>Magnet_Baffle_Support_L</name><x>686</x><y>717</y><width>34</width><height>4</height><line_width>0</line_width><background_color><color red="64" green="70" blue="80" alpha="255" /></background_color></widget>
   <widget type="rectangle" version="2.0.0"><name>Magnet_Baffle_Support</name><x>809</x><y>717</y><width>34</width><height>4</height><line_width>0</line_width><background_color><color red="64" green="70" blue="80" alpha="255" /></background_color></widget>
   <widget type="rectangle" version="2.0.0"><name>Shape_Nose</name><x>743</x><y>690</y><width>44</width><height>175</height><line_width>1</line_width><line_color><color red="85" green="96" blue="108" alpha="255" /></line_color><background_color><color red="246" green="248" blue="251" alpha="255" /></background_color></widget>
+  <widget type="rectangle" version="2.0.0"><name>Fridge_LHe_Fill_Nose</name><x>744</x><y>690</y><width>42</width><height>174</height><line_width>0</line_width><background_color><color red="135" green="195" blue="240" alpha="255"/></background_color><visible>false</visible></widget>
   <widget type="rectangle" version="2.0.0"><name>Target_Cup</name><x>747</x><y>746</y><width>34</width><height>115</height><line_width>0</line_width><transparent>true</transparent></widget>
   <widget type="rectangle" version="2.0.0"><name>Level_Alarm_Line</name><x>666</x><y>684</y><width>197</width><height>2</height><line_width>0</line_width><background_color><color red="200" green="30" blue="30" alpha="255" /></background_color></widget>
   <widget type="label" version="2.0.0"><name>Label94</name><text>20" alarm</text><x>622</x><y>679</y><width>46</width><height>12</height><font><font family="Liberation Sans" style="BOLD" size="8.0" /></font><foreground_color><color red="200" green="30" blue="30" alpha="255" /></foreground_color><transparent>true</transparent><horizontal_alignment>0</horizontal_alignment><vertical_alignment>1</vertical_alignment></widget>
