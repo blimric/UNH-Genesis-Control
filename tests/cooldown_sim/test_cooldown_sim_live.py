@@ -325,3 +325,22 @@ def test_microwaves_warm_t1_and_t3_by_about_a_kelvin():
     assert 0.5 <= warm - cold <= 1.0
     prov.model.inputs.mw_on = False
     assert prov.recorded("ls224_magnet", "T1", t + 1200.0) - cold < 0.1
+
+
+def test_the_warm_start_is_inside_every_thermometer_calibration():
+    # a reading above a curve's top is clipped by the emulated Lake Shore (the
+    # round-trip check then fails): M3 / M4 end at 293.7 K
+    from pathlib import Path
+
+    import yaml
+
+    from cooldown_sim.emulators.host import _ls224_inverse
+    root = Path(__file__).resolve().parents[2]
+    bg = LiveBackground(T0)
+    for name in ("ls224_magnet", "ls224_fridge"):
+        cfg = yaml.safe_load((root / "configs/target_physical" / name / "settings.yaml").read_text())[name]
+        chans = [c for c in cfg["channels"] if "None" not in str(c)]
+        slots = dict(zip([str(s) for s in cfg["slots"]], chans))
+        for slot, curve in _ls224_inverse(cfg).items():
+            lo, hi = curve.t_range
+            assert lo <= bg.value_at(slots[slot], T0) <= hi, slots[slot]

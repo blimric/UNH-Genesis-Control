@@ -49,6 +49,39 @@ lab answers are in `docs/COOLDOWN_SIM_OPEN_QUESTIONS.md`.
 
 ## Log
 
+### 2026-11-04: the live cool-down from warm; quick start; magnet and microwave fixes
+
+Ells asked for two simulations: the record-driven one (kept) and an
+interactive one where every button works as if a cool-down were in
+progress.  Built on dev-sim (Genesis-file changes on elong, merged in).
+
+* `python -m cooldown_sim live` / `tools/sim.sh`: `--source warm`, a live
+  cryostat (`synth/live.py`) behind the Timeline API.  Warm start; Start
+  Cool-down Sim (magnet LN2 + LHe, fridge convergence, backing pump to
+  ~1.9 K), Roots, pumps, magnet LHe fill, leaks, target-stick insert, warm-up,
+  reset.  Covered thermometers read the liquid (follow the vapour pressure);
+  microwaves add ~0.8 / 0.6 K to T1 / T3.  Durations from the 2025-11 and
+  2026-06 records (the data's magnet sits at 4.0-4.4 K in LHe, not ~2 K).
+* Closed-loop magnet: IPS120 emulator on simulated time, Magnet tab writable
+  in this session only (`profile.SESSION_SETTINGS`), field drives the NMR
+  line and Magic frequencies, quench drops the current.
+* Time warp: Sim Control slider (clicks at pause and 1x), automatic stages
+  warp and restore, drop to 1x on alarms, trips, quenches.  Trend history
+  in simulated time (`time_pv`, elong eb52832).
+* `python -m cooldown_sim history --cooldown X --start ...`: the
+  record-driven rehearsal with screens open.
+* `docs/SIMULATION_QUICK_START.md`, `tools/sim_setup.sh` (macOS, Linux,
+  WSL; Python 3.13 through uv, Java and Phoebus downloaded if missing).
+* elong, the same day: magnet trend 2 h at 4 s and 30-min plots; ramp
+  tolerance 0.5 mA, 0.1 mA steps (Q4) chosen from the target, finer
+  refused; RAMP pop-up removed; Vaunix +10 dBm on every connection and a
+  power setpoint; Magic +/- at the present field in the Microwave tab with
+  a Set target material button; Panopticon Magnet Space button opens the
+  magnet controller; liquid helium fills in the Panopticon drawing; stale
+  test counts fixed.
+* Tests: 1788 passed on a clean copy (WSL); an end-to-end live session
+  (cool-down, Roots, heater, 0 -> 48.666 A ramp at 60x) reported PASS.
+
 ### 2026-10-24: vapour-pressure temperature below 1.25 K (dev-visualizer)
 
 - On the live run, Manometer-Lo read about 0.5 Torr, below the ITS-90 floor (0.8606 Torr, 1.25 K), so _VapT was blank.

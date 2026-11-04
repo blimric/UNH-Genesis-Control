@@ -43,7 +43,9 @@ import numpy as np
 from ..model import physics as ph
 
 NAN = float("nan")
-ROOM_K = 295.0
+#: warm start (K): inside every thermometer's calibration (M3/M4 curves end at
+#: 293.7 K); the records start warm at 288-298 K
+ROOM_K = 292.0
 #: longest integration step (sim s)
 STEP_S = 10.0
 #: history kept for samples() (sim s) and its sampling period

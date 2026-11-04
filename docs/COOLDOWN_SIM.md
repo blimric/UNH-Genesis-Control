@@ -128,6 +128,51 @@ faults, notes and state changes. With the NMR leg it also writes
 * **Quench.** The fridge and magnet warm, cell pressure rises to atmosphere,
   P collapses, and the safety interlock withholds `Vac_Permit`.
 
+## 2b. The live cool-down from warm (every button working)
+
+New users: start with [SIMULATION_QUICK_START.md](SIMULATION_QUICK_START.md)
+(`bash tools/sim_setup.sh` once, then `bash tools/sim.sh`).
+
+    python -m cooldown_sim live                  # = run --mode interactive --source warm
+                                                 #   --legs cryo,nmr,mw,ssrf + screens
+    python -m cooldown_sim history --cooldown 2026-06 --start "2026-06-17 11:00"
+
+Ells (2026-11-04): a second interactive simulation, beside the
+record-driven one, in which the operator can push every button as if a
+cool-down were in progress.  No record is needed: a live cryostat
+(`cooldown_sim/synth/live.py`) answers the simulator exactly as a record
+does, and the closed-loop target model (microwaves, P and Q, NMR) runs on
+top of it unchanged.
+
+* **Everything starts warm and off.**  Sim Control's *Live cool-down* card:
+  **Start Cool-down Sim** runs the magnet's LN2 precool and LHe fill, the
+  fridge cool-down with convergence (F3-F11 and the cup wait for the liquid,
+  then reach ~4.2 K together; F1/F2 never get cold), then the backing pump
+  to ~1.9 K (~20 Torr).  **Roots** on: ~1.1 K, the flow spikes and settles.
+  **Backing pump**, **Magnet LHe Fill** (boil-off grows with the field;
+  below 20 in the magnet's permit blocks), **Shells / Cell leak**, **Target
+  Stick Insert** (pumps off, T1/T3 and the NMR down, ~4.2 K, then back;
+  you turn the pumps back on), **Warm up**, **Reset to warm**.  Simulated
+  durations follow the 2025-11 and 2026-06 records.
+* **Thermometers:** one under the liquid reads the liquid's temperature
+  (plus a small calibration offset), so it follows the vapour pressure; the
+  fridge level falls while pumped to just above the cup.  Microwaves at full
+  drive add ~0.8 K to T1 and ~0.6 K to T3.
+* **The magnet is live:** the IPS120 emulator runs on simulated time and
+  the Magnet tab works (writes enabled in this session's profile only); its
+  field moves the NMR line and the Magic frequencies.  It quenches out of its
+  helium or on QUENCH.
+* **Time warp:** the slider clicks at pause and 1x; the automatic stages
+  warp the clock (about a minute each) and give your speed back; the speed
+  drops to 1x on new major cryo alarms, interlock trips and quenches
+  (switchable).  The trend-history plots (Panopticon, Magnet tab) read in
+  simulated time; the Cryo tab's Data Browser plots stay on wall time.
+* **Session settings** (`profile.SESSION_SETTINGS`, never a scenario): the
+  magnet supply and cold board take writes, and the magnet IOC's wall-clock
+  backstops are relaxed because its supply follows simulated time; every
+  change is listed in the run's `profiles/rewrites.json`.  The live
+  cool-down cannot seek.
+
 ## 3. Unattended regression
 
     python -m cooldown_sim run --cooldown 2026-06 --start "2026-06-17 18:00" \
