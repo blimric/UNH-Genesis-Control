@@ -15,7 +15,9 @@ EXEMPT_TOP = {"cooldown_sim", "tests", ".git", "logs", "archive"}
 def _python_files():
     for path in ROOT.rglob("*.py"):
         rel = path.relative_to(ROOT)
-        if rel.parts[0] in EXEMPT_TOP or "__pycache__" in rel.parts:
+        # Hidden top-level folders (.claude worktrees, .venv) are not live code.
+        top = rel.parts[0]
+        if top in EXEMPT_TOP or top.startswith(".") or "__pycache__" in rel.parts:
             continue
         yield path
 

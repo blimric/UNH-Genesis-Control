@@ -33,8 +33,8 @@ def test_data_screen_is_16_by_9_and_in_bounds():
         int(root.findtext("height"))
     ) == (1280, 720)
 
-    assert len(root.findall("widget")) == 25
-    assert len(widgets) == 25
+    assert len(root.findall("widget")) == 26
+    assert len(widgets) == 26
 
     for name, w in widgets.items():
         x, y, width, height = geometry(w)

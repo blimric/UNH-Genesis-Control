@@ -9,7 +9,7 @@ GUI = ROOT / "gui"
 
 def test_cryo_navigation_complete():
     screens = list(GUI.glob("genesis_cryo*.bob"))
-    assert len(screens) == 13
+    assert len(screens) == 14
     for page in screens:
         root = ET.parse(page).getroot()
         for action in root.findall(".//action[@type='open_display']"):
