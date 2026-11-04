@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # One-time setup for the Genesis cool-down simulation: macOS, Linux, or
-# Windows through WSL (Ubuntu).  Safe to run again: it only adds what is missing.
+# Windows through WSL (Ubuntu).  Safe to run again: it only adds what is
+# missing, and needs no administrator rights except, on Linux, for the GTK
+# library Phoebus's windows use (it prints the command if that is missing).
 #
 #   bash tools/sim_setup.sh
 #
@@ -9,40 +11,48 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 REPO="$(pwd)"
 VENV="${GENESIS_SIM_VENV:-$HOME/.venvs/genesis-sim}"
+PYTHON_VERSION=3.13                      # environment.yml
 PHOEBUS_VERSION=5.0.5
 PHOEBUS_DIR="$HOME/phoebus"
 
 case "$(uname -s)" in
-    Darwin)
-        OS=mac
-        [ "$(uname -m)" = arm64 ] && ASSET="mac-aarch64" || ASSET="mac"
-        INSTALL="brew install python git && brew install --cask temurin@21" ;;
-    *)
-        OS=linux
-        ASSET="linux"
-        INSTALL="sudo apt update && sudo apt install -y python3 python3-venv git curl openjdk-21-jre libgtk-3-0" ;;
+    Darwin) OS=mac;   [ "$(uname -m)" = arm64 ] && ASSET=mac-aarch64 || ASSET=mac ;;
+    *)      OS=linux; ASSET=linux ;;
 esac
+case "$(uname -m)" in arm64|aarch64) ARCH=aarch64 ;; *) ARCH=x64 ;; esac
 
-missing=""
-for tool in python3 java curl git; do
-    command -v "$tool" >/dev/null || missing="$missing $tool"
+for tool in curl git tar; do
+    command -v "$tool" >/dev/null || { echo "Please install $tool first."; exit 1; }
 done
-if [ -n "$missing" ]; then
-    echo "Missing:$missing.  Please install them first:"
-    echo "  $INSTALL"
+if [ "$OS" = linux ] && ! { ldconfig -p 2>/dev/null || /sbin/ldconfig -p 2>/dev/null; } | grep -q "libgtk-3.so"; then
+    echo "Phoebus's windows need GTK 3.  Please run, then run this setup again:"
+    echo "  sudo apt update && sudo apt install -y libgtk-3-0"
     exit 1
 fi
 
-echo "== Python environment: $VENV"
-[ -x "$VENV/bin/python" ] || python3 -m venv "$VENV"
-"$VENV/bin/pip" install -q --upgrade pip
-"$VENV/bin/pip" install -q -r requirements-dev.txt
+echo "== Python $PYTHON_VERSION environment: $VENV"
+if ! command -v uv >/dev/null && [ ! -x "$HOME/.local/bin/uv" ]; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh >/dev/null
+fi
+UV="$(command -v uv || echo "$HOME/.local/bin/uv")"
+[ -x "$VENV/bin/python" ] || "$UV" venv -q --python "$PYTHON_VERSION" "$VENV"
+"$UV" pip install -q --python "$VENV/bin/python" -r requirements-dev.txt
+
+echo "== Java 21 (Phoebus runs on it)"
+if ! command -v java >/dev/null && [ ! -x "$PHOEBUS_DIR/jre/bin/java" ]; then
+    mkdir -p "$PHOEBUS_DIR/jre"
+    curl -fL "https://api.adoptium.net/v3/binary/latest/21/ga/$OS/$ARCH/jre/hotspot/normal/eclipse" \
+        -o "$PHOEBUS_DIR/jre.tar.gz"
+    tar -xzf "$PHOEBUS_DIR/jre.tar.gz" -C "$PHOEBUS_DIR/jre" --strip-components=1 && rm -f "$PHOEBUS_DIR/jre.tar.gz"
+    # macOS runtimes keep their binaries under Contents/Home
+    [ -x "$PHOEBUS_DIR/jre/Contents/Home/bin/java" ] && ln -sfn Contents/Home/bin "$PHOEBUS_DIR/jre/bin"
+fi
 
 echo "== Phoebus $PHOEBUS_VERSION (the operator screens): $PHOEBUS_DIR"
 if ! ls "$PHOEBUS_DIR"/product-*/product-*.jar >/dev/null 2>&1; then
     mkdir -p "$PHOEBUS_DIR"
     url="https://github.com/ControlSystemStudio/phoebus/releases/download/v$PHOEBUS_VERSION/phoebus-$PHOEBUS_VERSION-$ASSET.tar.gz"
-    echo "   downloading $url (~300 MB)"
+    echo "   downloading (~300 MB)"
     if curl -fL "$url" -o "$PHOEBUS_DIR/phoebus.tar.gz"; then
         tar -xzf "$PHOEBUS_DIR/phoebus.tar.gz" -C "$PHOEBUS_DIR" && rm -f "$PHOEBUS_DIR/phoebus.tar.gz"
     else

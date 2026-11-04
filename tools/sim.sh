@@ -14,6 +14,8 @@ if [ ! -x "$VENV/bin/python" ]; then
     echo "Run the one-time setup first:  bash tools/sim_setup.sh"
     exit 1
 fi
+# the Java the setup downloaded, if the computer had none
+[ -x "$HOME/phoebus/jre/bin/java" ] && ! command -v java >/dev/null && export PATH="$HOME/phoebus/jre/bin:$PATH"
 mode="${1:-live}"
 [ $# -gt 0 ] && shift
 exec "$VENV/bin/python" -u -m cooldown_sim "$mode" "$@"
