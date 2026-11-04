@@ -33,6 +33,7 @@ microwave_supervisor:
     tolerance: 0.1
   follow_dopant_pv: UNH:GEN:CRYO:STATE:dopant   # set with the material, Cryo Safety screen
   material_pv: UNH:GEN:CRYO:STATE:material      # Magic constants are per material
+  field_pv: UNH:GEN:MAG:FIELD                   # the Vaunix tab shows Magic +/- at this field
   # Magic +/- factors (GHz/T x field) from Ells, 2026-10-16, per dopant and
   # material.  gamma_d_over_2pi is deliberately NOT set yet: the Magic
   # formula divides CentralFrequency by it, and whether CentralFrequency is

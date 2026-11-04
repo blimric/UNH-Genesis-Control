@@ -2,7 +2,7 @@
 <display version="2.0.0">
   <name>Genesis Microwave Subsystem</name>
   <width>1180</width>
-  <height>1220</height>
+  <height>1260</height>
   <widget type="rectangle" version="2.0.0">
     <name>Header_Background</name>
     <x>0</x>
@@ -372,7 +372,7 @@
     <x>20</x>
     <y>230</y>
     <width>1140</width>
-    <height>305</height>
+    <height>345</height>
     <line_width>2</line_width>
     <line_color>
       <color red="0" green="53" blue="145" />
@@ -956,7 +956,7 @@
   <widget type="rectangle" version="2.0.0">
     <name>UCA_Card</name>
     <x>20</x>
-    <y>555</y>
+    <y>595</y>
     <width>555</width>
     <height>235</height>
     <line_width>2</line_width>
@@ -970,7 +970,7 @@
   <widget type="rectangle" version="2.0.0">
     <name>UCA_Card_Header</name>
     <x>20</x>
-    <y>555</y>
+    <y>595</y>
     <width>555</width>
     <height>38</height>
     <line_width>0</line_width>
@@ -984,7 +984,7 @@
   <widget type="label" version="2.0.0">
     <name>UCA_Card_Title</name>
     <x>35</x>
-    <y>562</y>
+    <y>602</y>
     <width>525</width>
     <height>24</height>
     <text>UCA POWER SUPPLY - SIGLENT SPD1305X</text>
@@ -999,7 +999,7 @@
   <widget type="label" version="2.0.0">
     <name>UCA_COMM_L</name>
     <x>45</x>
-    <y>605</y>
+    <y>645</y>
     <width>95</width>
     <height>24</height>
     <text>Connected:</text>
@@ -1011,7 +1011,7 @@
   <widget type="led" version="2.0.0">
     <name>UCA_COMM_LED</name>
     <x>140</x>
-    <y>602</y>
+    <y>642</y>
     <width>26</width>
     <height>26</height>
     <pv_name>ca://UNH:GEN:MW:PS:COMM</pv_name>
@@ -1026,7 +1026,7 @@
   <widget type="textupdate" version="2.0.0">
     <name>UCA_COMM_V</name>
     <x>175</x>
-    <y>603</y>
+    <y>643</y>
     <width>100</width>
     <height>25</height>
     <pv_name>ca://UNH:GEN:MW:PS:COMM</pv_name>
@@ -1035,7 +1035,7 @@
   <widget type="label" version="2.0.0">
     <name>UCA_OUTPUT_L</name>
     <x>305</x>
-    <y>605</y>
+    <y>645</y>
     <width>70</width>
     <height>24</height>
     <text>Output:</text>
@@ -1047,7 +1047,7 @@
   <widget type="led" version="2.0.0">
     <name>UCA_OUTPUT_LED</name>
     <x>375</x>
-    <y>602</y>
+    <y>642</y>
     <width>26</width>
     <height>26</height>
     <pv_name>ca://UNH:GEN:MW:PS:OUTPUT_RBV</pv_name>
@@ -1062,7 +1062,7 @@
   <widget type="textupdate" version="2.0.0">
     <name>UCA_OUTPUT_V</name>
     <x>410</x>
-    <y>603</y>
+    <y>643</y>
     <width>100</width>
     <height>25</height>
     <pv_name>ca://UNH:GEN:MW:PS:OUTPUT_RBV</pv_name>
@@ -1071,7 +1071,7 @@
   <widget type="label" version="2.0.0">
     <name>UCA_V_L</name>
     <x>45</x>
-    <y>645</y>
+    <y>685</y>
     <width>95</width>
     <height>24</height>
     <text>Voltage:</text>
@@ -1083,7 +1083,7 @@
   <widget type="textupdate" version="2.0.0">
     <name>UCA_V_V</name>
     <x>140</x>
-    <y>643</y>
+    <y>683</y>
     <width>110</width>
     <height>25</height>
     <pv_name>ca://UNH:GEN:MW:PS:VMEAS</pv_name>
@@ -1092,7 +1092,7 @@
   <widget type="label" version="2.0.0">
     <name>UCA_V_U</name>
     <x>260</x>
-    <y>645</y>
+    <y>685</y>
     <width>30</width>
     <height>24</height>
     <text>V</text>
@@ -1104,7 +1104,7 @@
   <widget type="label" version="2.0.0">
     <name>UCA_I_L</name>
     <x>45</x>
-    <y>677</y>
+    <y>717</y>
     <width>95</width>
     <height>24</height>
     <text>Current:</text>
@@ -1116,7 +1116,7 @@
   <widget type="textupdate" version="2.0.0">
     <name>UCA_I_V</name>
     <x>140</x>
-    <y>675</y>
+    <y>715</y>
     <width>110</width>
     <height>25</height>
     <pv_name>ca://UNH:GEN:MW:PS:IMEAS</pv_name>
@@ -1125,7 +1125,7 @@
   <widget type="label" version="2.0.0">
     <name>UCA_I_U</name>
     <x>260</x>
-    <y>677</y>
+    <y>717</y>
     <width>30</width>
     <height>24</height>
     <text>A</text>
@@ -1137,7 +1137,7 @@
   <widget type="label" version="2.0.0">
     <name>UCA_P_L</name>
     <x>45</x>
-    <y>709</y>
+    <y>749</y>
     <width>95</width>
     <height>24</height>
     <text>Power:</text>
@@ -1149,7 +1149,7 @@
   <widget type="textupdate" version="2.0.0">
     <name>UCA_P_V</name>
     <x>140</x>
-    <y>707</y>
+    <y>747</y>
     <width>110</width>
     <height>25</height>
     <pv_name>ca://UNH:GEN:MW:PS:PMEAS</pv_name>
@@ -1158,7 +1158,7 @@
   <widget type="label" version="2.0.0">
     <name>UCA_P_U</name>
     <x>260</x>
-    <y>709</y>
+    <y>749</y>
     <width>30</width>
     <height>24</height>
     <text>W</text>
@@ -1170,7 +1170,7 @@
   <widget type="label" version="2.0.0">
     <name>UCA_Error_L</name>
     <x>305</x>
-    <y>645</y>
+    <y>685</y>
     <width>60</width>
     <height>24</height>
     <text>Fault:</text>
@@ -1182,7 +1182,7 @@
   <widget type="textupdate" version="2.0.0">
     <name>UCA_Error_V</name>
     <x>365</x>
-    <y>643</y>
+    <y>683</y>
     <width>175</width>
     <height>25</height>
     <pv_name>ca://UNH:GEN:MW:PS:ERROR</pv_name>
@@ -1191,7 +1191,7 @@
   <widget type="action_button" version="3.0.0">
     <name>Open_UCA</name>
     <x>305</x>
-    <y>724</y>
+    <y>764</y>
     <width>220</width>
     <height>34</height>
     <actions>
@@ -1206,7 +1206,7 @@
   <widget type="rectangle" version="2.0.0">
     <name>Vaunix_Card</name>
     <x>600</x>
-    <y>555</y>
+    <y>595</y>
     <width>560</width>
     <height>235</height>
     <line_width>2</line_width>
@@ -1220,7 +1220,7 @@
   <widget type="rectangle" version="2.0.0">
     <name>Vaunix_Card_Header</name>
     <x>600</x>
-    <y>555</y>
+    <y>595</y>
     <width>560</width>
     <height>38</height>
     <line_width>0</line_width>
@@ -1234,7 +1234,7 @@
   <widget type="label" version="2.0.0">
     <name>Vaunix_Card_Title</name>
     <x>615</x>
-    <y>562</y>
+    <y>602</y>
     <width>530</width>
     <height>24</height>
     <text>MICROWAVE SOURCE - VAUNIX / BRIDGE12</text>
@@ -1249,7 +1249,7 @@
   <widget type="label" version="2.0.0">
     <name>VX_COMM_L</name>
     <x>625</x>
-    <y>605</y>
+    <y>645</y>
     <width>95</width>
     <height>24</height>
     <text>Connected:</text>
@@ -1261,7 +1261,7 @@
   <widget type="led" version="2.0.0">
     <name>VX_COMM_LED</name>
     <x>720</x>
-    <y>602</y>
+    <y>642</y>
     <width>26</width>
     <height>26</height>
     <pv_name>ca://UNH:GEN:MW:SRC:MW_Connected</pv_name>
@@ -1276,7 +1276,7 @@
   <widget type="textupdate" version="2.0.0">
     <name>VX_COMM_V</name>
     <x>755</x>
-    <y>603</y>
+    <y>643</y>
     <width>100</width>
     <height>25</height>
     <pv_name>ca://UNH:GEN:MW:SRC:MW_Connected</pv_name>
@@ -1285,7 +1285,7 @@
   <widget type="label" version="2.0.0">
     <name>VX_LOCK_L</name>
     <x>890</x>
-    <y>605</y>
+    <y>645</y>
     <width>75</width>
     <height>24</height>
     <text>PLL lock:</text>
@@ -1297,7 +1297,7 @@
   <widget type="led" version="2.0.0">
     <name>VX_LOCK_LED</name>
     <x>965</x>
-    <y>602</y>
+    <y>642</y>
     <width>26</width>
     <height>26</height>
     <pv_name>ca://UNH:GEN:MW:SRC:MW_Lock</pv_name>
@@ -1312,7 +1312,7 @@
   <widget type="label" version="2.0.0">
     <name>VX_OUT_L</name>
     <x>625</x>
-    <y>645</y>
+    <y>685</y>
     <width>105</width>
     <height>24</height>
     <text>Output freq:</text>
@@ -1324,7 +1324,7 @@
   <widget type="textupdate" version="2.0.0">
     <name>VX_OUT_V</name>
     <x>735</x>
-    <y>643</y>
+    <y>683</y>
     <width>115</width>
     <height>25</height>
     <pv_name>ca://UNH:GEN:MW:SRC:MW_OutFI</pv_name>
@@ -1333,7 +1333,7 @@
   <widget type="label" version="2.0.0">
     <name>VX_OUT_U</name>
     <x>855</x>
-    <y>645</y>
+    <y>685</y>
     <width>45</width>
     <height>24</height>
     <text>GHz</text>
@@ -1345,7 +1345,7 @@
   <widget type="label" version="2.0.0">
     <name>VX_SYN_L</name>
     <x>625</x>
-    <y>677</y>
+    <y>717</y>
     <width>105</width>
     <height>24</height>
     <text>Synth freq:</text>
@@ -1357,7 +1357,7 @@
   <widget type="textupdate" version="2.0.0">
     <name>VX_SYN_V</name>
     <x>735</x>
-    <y>675</y>
+    <y>715</y>
     <width>115</width>
     <height>25</height>
     <pv_name>ca://UNH:GEN:MW:SRC:MW_FI</pv_name>
@@ -1366,7 +1366,7 @@
   <widget type="label" version="2.0.0">
     <name>VX_SYN_U</name>
     <x>855</x>
-    <y>677</y>
+    <y>717</y>
     <width>45</width>
     <height>24</height>
     <text>GHz</text>
@@ -1378,7 +1378,7 @@
   <widget type="label" version="2.0.0">
     <name>VX_PWR_L</name>
     <x>625</x>
-    <y>709</y>
+    <y>749</y>
     <width>105</width>
     <height>24</height>
     <text>Source power:</text>
@@ -1390,7 +1390,7 @@
   <widget type="textupdate" version="2.0.0">
     <name>VX_PWR_V</name>
     <x>735</x>
-    <y>707</y>
+    <y>747</y>
     <width>115</width>
     <height>25</height>
     <pv_name>ca://UNH:GEN:MW:SRC:MW_PWRI</pv_name>
@@ -1399,7 +1399,7 @@
   <widget type="label" version="2.0.0">
     <name>VX_PWR_U</name>
     <x>855</x>
-    <y>709</y>
+    <y>749</y>
     <width>45</width>
     <height>24</height>
     <text>dBm</text>
@@ -1413,7 +1413,7 @@
   <widget type="label" version="2.0.0">
     <name>VX_PWRC_L</name>
     <x>625</x>
-    <y>745</y>
+    <y>785</y>
     <width>105</width>
     <height>24</height>
     <text>Set power:</text>
@@ -1425,7 +1425,7 @@
   <widget type="textentry" version="2.0.0">
     <name>VX_PWRC</name>
     <x>735</x>
-    <y>743</y>
+    <y>783</y>
     <width>115</width>
     <height>25</height>
     <pv_name>ca://UNH:GEN:MW:SRC:MW_PWRC</pv_name>
@@ -1435,7 +1435,7 @@
   <widget type="label" version="2.0.0">
     <name>VX_PWRC_U</name>
     <x>855</x>
-    <y>745</y>
+    <y>785</y>
     <width>45</width>
     <height>24</height>
     <text>dBm</text>
@@ -1447,7 +1447,7 @@
   <widget type="label" version="2.0.0">
     <name>VX_RF_L</name>
     <x>925</x>
-    <y>645</y>
+    <y>685</y>
     <width>65</width>
     <height>24</height>
     <text>RF actual:</text>
@@ -1459,7 +1459,7 @@
   <widget type="led" version="2.0.0">
     <name>VX_RF_LED</name>
     <x>995</x>
-    <y>642</y>
+    <y>682</y>
     <width>26</width>
     <height>26</height>
     <pv_name>ca://UNH:GEN:MW:SRC:MW_RF_RBV</pv_name>
@@ -1482,7 +1482,7 @@
   <widget type="label" version="2.0.0">
     <name>VX_SIM_L</name>
     <x>925</x>
-    <y>681</y>
+    <y>721</y>
     <width>80</width>
     <height>24</height>
     <text>Simulation:</text>
@@ -1494,7 +1494,7 @@
   <widget type="led" version="2.0.0">
     <name>VX_SIM_LED</name>
     <x>1005</x>
-    <y>678</y>
+    <y>718</y>
     <width>26</width>
     <height>26</height>
     <pv_name>ca://UNH:GEN:MW:SRC:MW_Simulation</pv_name>
@@ -1509,7 +1509,7 @@
   <widget type="action_button" version="3.0.0">
     <name>Open_Vaunix</name>
     <x>915</x>
-    <y>724</y>
+    <y>764</y>
     <width>220</width>
     <height>34</height>
     <actions>
@@ -1524,7 +1524,7 @@
   <widget type="rectangle" version="2.0.0">
     <name>Robot_Card</name>
     <x>20</x>
-    <y>810</y>
+    <y>850</y>
     <width>1140</width>
     <height>235</height>
     <line_width>2</line_width>
@@ -1538,7 +1538,7 @@
   <widget type="rectangle" version="2.0.0">
     <name>Robot_Card_Header</name>
     <x>20</x>
-    <y>810</y>
+    <y>850</y>
     <width>1140</width>
     <height>38</height>
     <line_width>0</line_width>
@@ -1552,7 +1552,7 @@
   <widget type="label" version="2.0.0">
     <name>Robot_Card_Title</name>
     <x>35</x>
-    <y>817</y>
+    <y>857</y>
     <width>1110</width>
     <height>24</height>
     <text>MICROWAVE POSITIONING ROBOT - PCL602</text>
@@ -1567,7 +1567,7 @@
   <widget type="label" version="2.0.0">
     <name>RB_COMM_L</name>
     <x>45</x>
-    <y>860</y>
+    <y>900</y>
     <width>90</width>
     <height>24</height>
     <text>Connected:</text>
@@ -1579,7 +1579,7 @@
   <widget type="led" version="2.0.0">
     <name>RB_COMM_LED</name>
     <x>135</x>
-    <y>857</y>
+    <y>897</y>
     <width>26</width>
     <height>26</height>
     <pv_name>ca://UNH:GEN:MW:ROBOT:COMM_STATUS</pv_name>
@@ -1594,7 +1594,7 @@
   <widget type="label" version="2.0.0">
     <name>RB_SIM_L</name>
     <x>190</x>
-    <y>860</y>
+    <y>900</y>
     <width>85</width>
     <height>24</height>
     <text>Simulation:</text>
@@ -1606,7 +1606,7 @@
   <widget type="led" version="2.0.0">
     <name>RB_SIM_LED</name>
     <x>275</x>
-    <y>857</y>
+    <y>897</y>
     <width>26</width>
     <height>26</height>
     <pv_name>ca://UNH:GEN:MW:ROBOT:SIMULATION</pv_name>
@@ -1621,7 +1621,7 @@
   <widget type="label" version="2.0.0">
     <name>RB_MODE_L</name>
     <x>330</x>
-    <y>860</y>
+    <y>900</y>
     <width>55</width>
     <height>24</height>
     <text>Mode:</text>
@@ -1633,7 +1633,7 @@
   <widget type="textupdate" version="2.0.0">
     <name>RB_MODE_V</name>
     <x>385</x>
-    <y>858</y>
+    <y>898</y>
     <width>130</width>
     <height>25</height>
     <pv_name>ca://UNH:GEN:MW:ROBOT:CONTROL_MODE</pv_name>
@@ -1642,7 +1642,7 @@
   <widget type="label" version="2.0.0">
     <name>RB_X_L</name>
     <x>45</x>
-    <y>903</y>
+    <y>943</y>
     <width>30</width>
     <height>24</height>
     <text>X:</text>
@@ -1654,7 +1654,7 @@
   <widget type="textupdate" version="2.0.0">
     <name>RB_X_V</name>
     <x>75</x>
-    <y>901</y>
+    <y>941</y>
     <width>110</width>
     <height>25</height>
     <pv_name>ca://UNH:GEN:MW:ROBOT:X_CM</pv_name>
@@ -1663,7 +1663,7 @@
   <widget type="label" version="2.0.0">
     <name>RB_X_U</name>
     <x>190</x>
-    <y>903</y>
+    <y>943</y>
     <width>35</width>
     <height>24</height>
     <text>cm</text>
@@ -1675,7 +1675,7 @@
   <widget type="label" version="2.0.0">
     <name>RB_Y_L</name>
     <x>245</x>
-    <y>903</y>
+    <y>943</y>
     <width>30</width>
     <height>24</height>
     <text>Y:</text>
@@ -1687,7 +1687,7 @@
   <widget type="textupdate" version="2.0.0">
     <name>RB_Y_V</name>
     <x>275</x>
-    <y>901</y>
+    <y>941</y>
     <width>110</width>
     <height>25</height>
     <pv_name>ca://UNH:GEN:MW:ROBOT:Y_CM</pv_name>
@@ -1696,7 +1696,7 @@
   <widget type="label" version="2.0.0">
     <name>RB_Y_U</name>
     <x>390</x>
-    <y>903</y>
+    <y>943</y>
     <width>35</width>
     <height>24</height>
     <text>cm</text>
@@ -1708,7 +1708,7 @@
   <widget type="label" version="2.0.0">
     <name>RB_XREF_L</name>
     <x>445</x>
-    <y>903</y>
+    <y>943</y>
     <width>100</width>
     <height>24</height>
     <text>X referenced:</text>
@@ -1720,7 +1720,7 @@
   <widget type="led" version="2.0.0">
     <name>RB_XREF_LED</name>
     <x>545</x>
-    <y>900</y>
+    <y>940</y>
     <width>26</width>
     <height>26</height>
     <pv_name>ca://UNH:GEN:MW:ROBOT:X_REFERENCED</pv_name>
@@ -1735,7 +1735,7 @@
   <widget type="label" version="2.0.0">
     <name>RB_YREF_L</name>
     <x>600</x>
-    <y>903</y>
+    <y>943</y>
     <width>100</width>
     <height>24</height>
     <text>Y referenced:</text>
@@ -1747,7 +1747,7 @@
   <widget type="led" version="2.0.0">
     <name>RB_YREF_LED</name>
     <x>700</x>
-    <y>900</y>
+    <y>940</y>
     <width>26</width>
     <height>26</height>
     <pv_name>ca://UNH:GEN:MW:ROBOT:Y_REFERENCED</pv_name>
@@ -1762,7 +1762,7 @@
   <widget type="label" version="2.0.0">
     <name>RB_XBUSY_L</name>
     <x>755</x>
-    <y>903</y>
+    <y>943</y>
     <width>80</width>
     <height>24</height>
     <text>X moving:</text>
@@ -1774,7 +1774,7 @@
   <widget type="led" version="2.0.0">
     <name>RB_XBUSY_LED</name>
     <x>835</x>
-    <y>900</y>
+    <y>940</y>
     <width>26</width>
     <height>26</height>
     <pv_name>ca://UNH:GEN:MW:ROBOT:X_BUSY</pv_name>
@@ -1789,7 +1789,7 @@
   <widget type="label" version="2.0.0">
     <name>RB_YBUSY_L</name>
     <x>890</x>
-    <y>903</y>
+    <y>943</y>
     <width>80</width>
     <height>24</height>
     <text>Y moving:</text>
@@ -1801,7 +1801,7 @@
   <widget type="led" version="2.0.0">
     <name>RB_YBUSY_LED</name>
     <x>970</x>
-    <y>900</y>
+    <y>940</y>
     <width>26</width>
     <height>26</height>
     <pv_name>ca://UNH:GEN:MW:ROBOT:Y_BUSY</pv_name>
@@ -1816,7 +1816,7 @@
   <widget type="label" version="2.0.0">
     <name>RB_Error_L</name>
     <x>45</x>
-    <y>948</y>
+    <y>988</y>
     <width>90</width>
     <height>24</height>
     <text>Robot fault:</text>
@@ -1828,7 +1828,7 @@
   <widget type="textupdate" version="2.0.0">
     <name>RB_Error_V</name>
     <x>135</x>
-    <y>946</y>
+    <y>986</y>
     <width>700</width>
     <height>25</height>
     <pv_name>ca://UNH:GEN:MW:ROBOT:LAST_ERROR</pv_name>
@@ -1837,7 +1837,7 @@
   <widget type="action_button" version="3.0.0">
     <name>Open_Robot</name>
     <x>890</x>
-    <y>942</y>
+    <y>982</y>
     <width>220</width>
     <height>34</height>
     <actions>
@@ -1852,7 +1852,7 @@
   <widget type="label" version="2.0.0">
     <name>Main_Safety_Note</name>
     <x>30</x>
-    <y>1065</y>
+    <y>1105</y>
     <width>1120</width>
     <height>38</height>
     <text>RF request uses the Supervisor. Use RF OFF / ABORT for verified shutdown of RF and sweeps. UNKNOWN is not confirmed OFF. VDI/SIG checks remain manual; calibration is diagnostic.</text>
@@ -2041,5 +2041,69 @@
     <pv_name>ca://UNH:GEN:MW:SUP:ExpertStatus</pv_name>
     <x>945</x><y>236</y><width>205</width><height>26</height>
     <tooltip>Last Expert mode change</tooltip>
+  </widget>
+  <!-- Elena Long (2026-11-04): Magic +/- at the present field, beside the
+       frequency setpoint, and where the target material and dopant are set -->
+  <widget type="label" version="2.0.0">
+    <name>SUP_MagicPlus_L</name>
+    <x>45</x>
+    <y>540</y>
+    <width>75</width>
+    <height>24</height>
+    <text>Magic +:</text>
+  </widget>
+  <widget type="textupdate" version="2.0.0">
+    <name>SUP_MagicPlus_V</name>
+    <x>120</x>
+    <y>538</y>
+    <width>120</width>
+    <height>25</height>
+    <pv_name>ca://UNH:GEN:MW:SUP:MagicPlusGHz</pv_name>
+    <precision>4</precision>
+    <show_units>true</show_units>
+    <tooltip>Best P-up output frequency at the present field (0 until a target material and dopant are set)</tooltip>
+  </widget>
+  <widget type="label" version="2.0.0">
+    <name>SUP_MagicMinus_L</name>
+    <x>260</x>
+    <y>540</y>
+    <width>75</width>
+    <height>24</height>
+    <text>Magic -:</text>
+  </widget>
+  <widget type="textupdate" version="2.0.0">
+    <name>SUP_MagicMinus_V</name>
+    <x>335</x>
+    <y>538</y>
+    <width>120</width>
+    <height>25</height>
+    <pv_name>ca://UNH:GEN:MW:SUP:MagicMinusGHz</pv_name>
+    <precision>4</precision>
+    <show_units>true</show_units>
+    <tooltip>Best P-down output frequency at the present field (0 until a target material and dopant are set)</tooltip>
+  </widget>
+  <widget type="textupdate" version="2.0.0">
+    <name>SUP_MagicStatus_V</name>
+    <x>470</x>
+    <y>538</y>
+    <width>330</width>
+    <height>25</height>
+    <pv_name>ca://UNH:GEN:MW:SUP:MagicStatus</pv_name>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>SUP_SetTargetMaterial</name>
+    <x>900</x>
+    <y>534</y>
+    <width>220</width>
+    <height>32</height>
+    <actions>
+      <action type="open_display">
+        <file>genesis_cryo_safety.bob</file>
+        <target>tab</target>
+        <description>Set target material</description>
+      </action>
+    </actions>
+    <text>Set target material</text>
+    <tooltip>Opens Cryo Safety, where the target material and dopant are chosen (the Magic values need them)</tooltip>
   </widget>
 </display>
