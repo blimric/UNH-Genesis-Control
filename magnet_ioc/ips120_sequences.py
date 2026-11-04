@@ -69,6 +69,8 @@ class Aborted(Exception):
 #: (section 8.2): 0.001 A at normal resolution.  Genesis never selects extended
 #: resolution (Q4, 0.0001 A), and the supply returns to normal at power-up.
 SUPPLY_STEP_A = 0.001
+#: with the operator's 0.1 mA option (Q4, extended resolution)
+SUPPLY_STEP_FINE_A = 0.0001
 
 @dataclass
 class MagnetConfig:
@@ -242,6 +244,8 @@ class MagnetSequencer:
         self.inductance_r24 = math.nan
         #: the operator's IGNORE_INDUCTANCE (V4); never on at start-up
         self.inductance_override = False
+        #: the operator's 0.1 mA steps (FINE_STEPS); off at every start-up
+        self.fine = False
         self.r20_meaning = None if cfg.r20_meaning == "auto" else cfg.r20_meaning
 
     # ------------------------------------------------------------ plumbing
@@ -617,14 +621,21 @@ class MagnetSequencer:
     async def ramp(self, target: float):
         cfg = self.cfg
         validate_current(target, "target current", cfg.max_current)
-        # the supply takes the current to 1 mA (SUPPLY_STEP_A): aim at what it can
-        # reach, so the 0.5 mA completion test can always be met
-        requested, target = target, round(target / SUPPLY_STEP_A) * SUPPLY_STEP_A
+        # the supply sets its current in 1 mA steps, 0.1 mA with the fine option:
+        # aim at what it can reach; done within half a step
+        step = SUPPLY_STEP_FINE_A if self.fine else SUPPLY_STEP_A
+        tol = min(cfg.current_tolerance, step / 2)
+        unit = f"{step * 1000:g} mA"
+        requested, target = target, round(target / step) * step
         await self._require_permit()                                   # issue 13: permit first
         await self.preflight()                                         # issues 2, 17
         self.set_state("PREPARING")
-        self.event("ramp", f"ramp to {target:.3f} A requested")
+        self.event("ramp", f"ramp to {target:.4f} A requested" if self.fine
+                   else f"ramp to {target:.3f} A requested")
         await self._io(self.ips.remote_unlocked)
+        if self.fine and not await self._io(self.ips.set_resolution, True):
+            # a power cycle returns the supply to 1 mA steps: confirm Q4 every time
+            raise Refused("0.1 mA steps (Q4) not confirmed by the supply")
         r0, r16 = await self._read_currents_twice()
         validate_current(r0, "supply current", cfg.max_current)
         validate_current(r16, "persistent current", cfg.max_current)
@@ -637,17 +648,17 @@ class MagnetSequencer:
         current = await self._io(self.ips.read_demand_current)
         # Elena Long (2026-11-04): tell the operator when the change asked for is
         # below the supply's 1 mA step, or was rounded to it
-        too_small = (abs(current - target) <= cfg.current_tolerance
+        too_small = (abs(current - target) <= tol
                      and abs(requested - current) > 1e-9)
         if too_small:
             self.event("ramp", f"change of {abs(requested - current) * 1000:.2f} mA is below "
-                       f"the supply's 1 mA step: not moved")
+                       f"the supply's {unit} step: not moved")
         elif abs(requested - target) > 1e-9:
-            self.event("ramp", f"target {requested:.4f} A rounded to {target:.3f} A "
-                       f"(the supply's 1 mA step)")
+            self.event("ramp", f"target {requested:.5f} A rounded to "
+                       f"{target:.{4 if self.fine else 3}f} A (the supply's {unit} step)")
         track = _Track()
-        while abs(current - target) > cfg.current_tolerance:
-            nxt = next_ramp_target(current, target, cfg.current_tolerance, cfg.rate_bands)
+        while abs(current - target) > tol:
+            nxt = next_ramp_target(current, target, tol, cfg.rate_bands)
             rate = choose_sweep_rate(current, nxt, cfg.rate_bands)
             self.set_state(f"RAMP {current:.2f}->{nxt:.2f} A @{rate:g}"[:39])
             self.event("segment", f"{current:.3f} -> {nxt:.3f} A at {rate:g} A/min",
@@ -681,16 +692,16 @@ class MagnetSequencer:
                     if abs(L - cfg.inductance_h) > cfg.measured_inductance_tolerance * cfg.inductance_h:
                         raise Aborted(f"inductance {L:.1f} H while ramping, expected "
                                       f"{cfg.inductance_h:g} H")          # issue 17
-                if abs(current - nxt) <= cfg.current_tolerance and st.at_rest:   # issue 12
+                if abs(current - nxt) <= tol and st.at_rest:   # issue 12
                     break
                 if now > deadline:
                     raise Aborted(f"segment to {nxt:.2f} A not finished in time")
         await self._io(self.ips.hold)
         if too_small:
-            self.set_state("NOT MOVED: CHANGE < 1 mA STEP")
+            self.set_state(f"NOT MOVED: CHANGE < {unit} STEP")
             return
         self.set_state("COMPLETE / HOLD")
-        self.event("ramp", f"ramp complete at {current:.3f} A")
+        self.event("ramp", f"ramp complete at {current:.{4 if self.fine else 3}f} A")
 
     # ------------------------------------------------------------ outage
     async def outage(self):

@@ -4,10 +4,11 @@
 Run:  python tools/make_magnet_screen.py
 
 The Phoebus tab for magnet_ioc (``UNH:GEN:MAG``), ported from the student's
-Magnet_V3 / V4 screens with the review's screen fixes (issue 14): every
-command that moves the magnet asks for confirmation; the switch heater shows
-its read-back state and has two explicit buttons instead of one toggle; HOLD
-never asks.  From V4: the SYSTEM CHECKS line, the heater ON and OFF bars, the
+Magnet_V3 / V4 screens with the review's screen fixes (issue 14): heater ON
+and OFF, MATCH and the outage button ask for confirmation; RAMP and HOLD do
+not (Elena Long, 2026-11-04: the RAMP pop-up came up on every field trim).
+The switch heater shows its read-back state and has two explicit buttons
+instead of one toggle.  From V4: the SYSTEM CHECKS line, the heater ON and OFF bars, the
 R20 heater verification, the inductance check and its bypass, the low-helium
 warning; the helium level and the fringe field are read from the Genesis
 IOCs (the AMI 135, the LS455), not typed in.  The big red POWER OUTAGE
@@ -57,10 +58,10 @@ def entry(pv, x, y, w, h=26, name=None, tooltip=""):
             f"{pan.font(11, True)}<background_color>{pan.col(pan.WHITE)}</background_color>{tip}</widget>")
 
 
-def combo(pv, x, y, w, h=26, name=None):
+def combo(pv, x, y, w, h=26, name=None, confirm=True):
     return (f'<widget type="combo" version="2.0.0"><name>{name or pan._name("Combo")}</name>'
             f"<pv_name>ca://{pv}</pv_name><x>{x}</x><y>{y}</y><width>{w}</width><height>{h}</height>"
-            f"<items_from_pv>true</items_from_pv><confirm>true</confirm></widget>")
+            f"<items_from_pv>true</items_from_pv><confirm>{str(confirm).lower()}</confirm></widget>")
 
 
 def progress(pv, x, y, w, h=18, name=None):
@@ -151,24 +152,30 @@ def ramp_card():
     w = [pan.card("Ramp", x, y, 460, 300, "Ramp")]
     w.append(pan.label("Target current (A)", 466, 84, 200, 16, 9, False, pan.MUTED))
     w.append(entry(f"{MAG}:TARGET_CURRENT", 466, 100, 200, name="TargetCurrent",
-                   tooltip="0 to just under the software limit, in 1 mA steps (the IPS120's smallest)"))
+                   tooltip="0 to just under the software limit, in 1 mA steps, or 0.1 mA with "
+                           "the 0.1 mA step chosen below"))
     w.append(pan.label("or target field (T)", 680, 84, 200, 16, 9, False, pan.MUTED))
     w.append(entry(f"{MAG}:TARGET_FIELD", 680, 100, 200, name="TargetField",
                    tooltip="sets the target current by the field equation"))
+    # Elena Long (2026-11-04): RAMP no longer asks (during field trims the
+    # pop-up came up on every press); the IOC's checks, the 3 A/min cap and
+    # HOLD are unchanged, and a change too small to send is reported in State
     w.append(command("RAMP to target", f"{MAG}:RAMP", 466, 140, 200, 40,
-                     confirm="Ramp the magnet to the target current at 3 A/min? Only in driven "
-                             "mode: the switch heater must already be ON.",
                      bg=AMBER_LIGHT, size=12, bold=True, name="RampButton"))
     w.append(command("HOLD", f"{MAG}:HOLD", 680, 140, 200, 40, bg=RED_LIGHT, size=14, bold=True,
                      name="HoldButton"))
-    w.append(pan.label("HOLD never asks: it stops at once.", 680, 182, 230, 16, 8, False, pan.MUTED))
-    w.append(fld("State", f"{MAG}:STATE", 466, 204, 440, 12))
-    w.append(fld("Operation", f"{MAG}:OPERATION", 466, 248, 214, 11, bold=False))
-    w.append(pan.label("Busy", 690, 248, 60, 15, 9, False, pan.MUTED))
-    w.append(pan.led(f"{MAG}:BUSY", 690, 268, 18))
-    w.append(pan.label("3 A/min, never faster; smallest change 1 mA.  Ramps only in driven mode: "
-                       "from persistent, MATCH, then heater ON (H1), then RAMP.", 466, 296, 440, 36, 9, False,
-                       pan.MUTED, wrap=True))
+    w.append(pan.label("RAMP and HOLD act at once (no pop-up).", 680, 184, 230, 16, 8, False, pan.MUTED))
+    # 1 mA or 0.1 mA steps (IPS120 extended resolution, Q4); 1 mA at every start-up
+    w.append(pan.label("Step", 466, 186, 36, 16, 9, False, pan.MUTED))
+    w.append(combo(f"{MAG}:FINE_STEPS", 502, 183, 164, 22, name="FineSteps", confirm=False))
+    w.append(fld("State", f"{MAG}:STATE", 466, 212, 440, 12))
+    w.append(fld("Operation", f"{MAG}:OPERATION", 466, 254, 214, 11, bold=False))
+    w.append(pan.label("Busy", 690, 254, 60, 15, 9, False, pan.MUTED))
+    w.append(pan.led(f"{MAG}:BUSY", 690, 274, 18))
+    w.append(fld("Supply step", f"{MAG}:RESOLUTION", 740, 254, 166, 10, bold=False))
+    w.append(pan.label("3 A/min, never faster; smallest change 1 mA (0.1 mA with the 0.1 mA step).  "
+                       "Ramps only in driven mode: from persistent, MATCH, then heater ON (H1), "
+                       "then RAMP.", 466, 300, 440, 46, 9, False, pan.MUTED, wrap=True))
     return w
 
 

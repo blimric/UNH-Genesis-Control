@@ -240,7 +240,8 @@ class IPS120(Emulator):
                     return refuse
                 if not (self.safe_neg <= value <= self.safe_pos) or not math.isfinite(value):
                     return refuse
-                self.target = value
+                # the set current's resolution: 0.001 A, 0.0001 A extended (p42)
+                self.target = round(value, 4 if self.resolution in (4, 6) else 3)
                 return b"I" + CR
             if c == "S":
                 try:

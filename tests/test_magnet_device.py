@@ -183,3 +183,28 @@ def test_a_quench_is_reported_and_recorded(device, tmp_path):
     rows = [json.loads(line) for f in (tmp_path / "events").glob("*.jsonl")
             for line in f.read_text().splitlines()]
     assert any(r["kind"] == "fault" for r in rows)
+
+
+def test_fine_steps_send_q4_and_show_the_resolution(device):
+    # Elena Long (2026-11-04): the 0.1 mA option, off at start-up
+    dev, emu, recs = device(write_enabled=True)
+    assert recs["FINE_STEPS"].value == 0 and emu.resolution == 0
+    asyncio.run(dev.do_reads())
+    assert recs["RESOLUTION"].value == "1 mA (normal)"
+    asyncio.run(dev._set_fine_steps(1))
+    assert emu.resolution == 4 and dev.sequencer.fine
+    asyncio.run(dev.do_reads())
+    assert recs["RESOLUTION"].value == "0.1 mA (extended)"
+    emu.power_cycle()                                  # the supply forgets Q4
+    asyncio.run(dev.do_reads())
+    assert recs["RESOLUTION"].value.startswith("1 mA: supply reset")
+    asyncio.run(dev._set_fine_steps(0))
+    assert emu.resolution == 0 and not dev.sequencer.fine
+
+
+def test_fine_steps_are_refused_while_writes_are_disabled(device):
+    dev, emu, recs = device(write_enabled=False)
+    recs["FINE_STEPS"].set(1, process=False)
+    asyncio.run(dev._set_fine_steps(1))
+    assert emu.resolution == 0 and recs["FINE_STEPS"].value == 0
+    assert recs["LAST_EVENT"].value.startswith("refused")

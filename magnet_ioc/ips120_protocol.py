@@ -22,6 +22,7 @@ from __future__ import annotations
 import math
 import re
 import threading
+import time
 from dataclasses import dataclass
 
 # ------------------------------------------------------------ decoding tables
@@ -152,6 +153,19 @@ def parse_numeric_response(response: str) -> float:
     return value
 
 
+#: Decimals in a current reply (R0, R5): the IPS120-10 sets its current in
+#: 0.001 A steps, or 0.0001 A with extended resolution (Q4; manual, I and Q
+#: commands).  Q answers nothing, so the mode is read from these decimals.
+NORMAL_DECIMALS = 3
+EXTENDED_DECIMALS = 4
+
+
+def response_decimals(response: str) -> int:
+    """Digits after the decimal point in a numeric reply: ``R+48.4031`` -> 4."""
+    text = (response or "").strip()
+    return len(text.split(".", 1)[1]) if "." in text else 0
+
+
 def format_current(amps: float, decimals: int = 3) -> str:
     """Fixed-point amps for I / S commands (review issue 10: never 1e-05 or
     48.66600000000001)."""
@@ -175,6 +189,10 @@ class IPSClient:
     def __init__(self, transport):
         self.t = transport
         self.lock = threading.Lock()
+        #: the supply's resolution, from the decimals of its last current
+        #: reply (R0 / R5); a power cycle returns it to normal (manual, Q)
+        self.current_decimals: int | None = None
+        self.extended = False
 
     def close(self):
         self.t.close()
@@ -206,7 +224,12 @@ class IPSClient:
 
     # ------------------------------------------------------------- reads
     def read(self, n: int) -> float:
-        return parse_numeric_response(self.query(f"R{int(n)}"))
+        reply = self.query(f"R{int(n)}")
+        value = parse_numeric_response(reply)
+        if int(n) in (0, 5):
+            self.current_decimals = response_decimals(reply)
+            self.extended = self.current_decimals >= EXTENDED_DECIMALS
+        return value
 
     def read_demand_current(self) -> float:          # R0
         return self.read(0)
@@ -261,7 +284,19 @@ class IPSClient:
         self.query("A2")
 
     def set_target_current(self, amps: float):       # I
-        self.query("I" + format_current(amps))
+        # 4 decimals only once the supply has shown extended resolution
+        self.query("I" + format_current(amps, EXTENDED_DECIMALS if self.extended
+                                          else NORMAL_DECIMALS))
+
+    def set_resolution(self, extended: bool) -> bool:   # Q4 / Q0
+        """Elena Long (2026-11-04): Q4, extended resolution (0.1 mA steps), or
+        Q0, normal (1 mA); both keep CR-only replies (Q2 / Q6 would add LF).
+        Q answers nothing and clears the supply's buffer, so wait a moment and
+        confirm the mode from R0's decimals.  True when confirmed."""
+        self.query("Q4" if extended else "Q0")
+        time.sleep(0.1)
+        self.read_demand_current()
+        return self.extended == bool(extended)
 
     def set_sweep_rate(self, amps_per_min: float):   # S
         self.query("S" + format_current(amps_per_min))

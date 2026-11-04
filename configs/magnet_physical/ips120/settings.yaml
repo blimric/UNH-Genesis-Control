@@ -143,6 +143,8 @@ ips120:
     TARGET_CURRENT: {DESC: Requested target current, EGU: A}
     TARGET_FIELD: {DESC: Requested target field, EGU: T}
     EXPERT: {DESC: Expert mode (LHe floor 16 in)}
+    FINE_STEPS: {DESC: 0.1 mA steps (extended resolution)}
+    RESOLUTION: {DESC: Supply current step in use}
     COMM: {DESC: Supply communication}
     ERROR: {DESC: Active communication fault}
     LAST_EVENT: {DESC: Latest magnet event}

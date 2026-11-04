@@ -32,7 +32,9 @@ Derived:  MAGNET_CURRENT (R0, the supply current, while driven; R16 while
 Operation:  STATE, OPERATION, BUSY, HEATER_PROGRESS, PERMIT, PERMIT_REASON.
 Commands:  TARGET_CURRENT, TARGET_FIELD (sets TARGET_CURRENT by the field
     equation), RAMP, HOLD, HEATER_ON_CMD, HEATER_OFF_CMD, MATCH, OUTAGE (the
-    red button), EXPERT (allows ramps down to 16" of magnet LHe).
+    red button), EXPERT (allows ramps down to 16" of magnet LHe), FINE_STEPS
+    (0.1 mA steps: Q4, extended resolution; off at every start-up) and its
+    read-back RESOLUTION (from the decimals of the supply's current replies).
 
 Every operator request and what came of it goes to an event log (JSONL,
 review issue 16); every poll's current, voltage and status go to a CSV log
@@ -112,7 +114,7 @@ class Device(GenesisBaseDevice):
         for name in ("STATUS", "SYSTEM", "LIMITS", "ACTIVITY", "CONTROL", "HEATER", "MOTION",
                      "FIELD_SOURCE", "STATE", "OPERATION", "PERMIT_REASON", "VERSION",
                      "XMN", "XMN_MEANING", "INDUCTANCE_CHECK", "HEATER_CURRENT_STATE",
-                     "R20_MEANING", "SYSTEM_CHECK_STATE"):
+                     "R20_MEANING", "SYSTEM_CHECK_STATE", "RESOLUTION"):
             p[name] = b.stringIn(name)
         p["HEATER_ON"] = b.boolIn("HEATER_ON", ZNAM="Off (switch closed)", ONAM="On (switch open)")
         p["QUENCH"] = b.boolIn("QUENCH", ZNAM="Normal", ONAM="QUENCHED", OSV="MAJOR")
@@ -130,6 +132,9 @@ class Device(GenesisBaseDevice):
         # V4: the operator's bypass of the R24 check; never on at start-up
         p["IGNORE_INDUCTANCE"] = b.boolOut("IGNORE_INDUCTANCE", ZNAM="Check", ONAM="BYPASSED",
                                            initial_value=0, on_update=self._set_ignore_inductance)
+        # Elena Long (2026-11-04): 0.1 mA steps (IPS120 extended resolution, Q4)
+        p["FINE_STEPS"] = b.boolOut("FINE_STEPS", ZNAM="1 mA steps", ONAM="0.1 mA steps",
+                                    initial_value=0, on_update=self._set_fine_steps)
         for name, handler in (("RAMP", self._cmd_ramp), ("HOLD", self._cmd_hold),
                               ("HEATER_ON_CMD", self._cmd_heater_on),
                               ("HEATER_OFF_CMD", self._cmd_heater_off),
@@ -144,6 +149,7 @@ class Device(GenesisBaseDevice):
         p["R20_MEANING"].set(self.cfg.r20_meaning)
         p["SYSTEM_CHECK_STATE"].set("STARTUP CHECKS")
         p["XMN"].set("X??")
+        p["RESOLUTION"].set("unknown")
 
     def _create_connection(self):
         s = self.settings
@@ -156,6 +162,7 @@ class Device(GenesisBaseDevice):
         """Reads only (issue 18)."""
         self.pvs["VERSION"].set(str(self.t.read_version())[:39])
         override = self.sequencer.inductance_override if self.sequencer else False
+        fine = self.sequencer.fine if self.sequencer else False
         self.sequencer = MagnetSequencer(
             self.t, self.cfg, permit=self._check_permit, event=self._event,
             state=lambda text: self.pvs["STATE"].set(str(text)[:39]),
@@ -163,6 +170,7 @@ class Device(GenesisBaseDevice):
             progress_off=lambda pct: self.pvs["HEATER_OFF_PROGRESS"].set(float(pct)),
             heater=lambda text: self.pvs["HEATER_CURRENT_STATE"].set(str(text)[:39]))
         self.sequencer.inductance_override = override
+        self.sequencer.fine = fine      # the next ramp re-sends and confirms Q4
         # V4's start-up inductance check: R24, a read only
         self.sequencer.note_inductance(self.t.read_inductance())
         self.pvs["INDUCTANCE_CHECK"].set(self.sequencer.inductance_text()[:39])
@@ -243,6 +251,45 @@ class Device(GenesisBaseDevice):
             self.pvs["INDUCTANCE_CHECK"].set(self.sequencer.inductance_text()[:39])
         self._event("inductance", "R24 check BYPASSED by the operator" if on
                     else "R24 check restored")
+
+    async def _set_fine_steps(self, value):
+        """0.1 mA steps on (Q4) or off (Q0), confirmed from the supply's reply.
+        Not while an operation runs; refused and put back if not confirmed."""
+        on = bool(int(value))
+        seq = self.sequencer
+        if seq is not None and seq.fine == on:
+            return
+        problem = None
+        if not self._gate("FINE_STEPS"):
+            problem = "writes disabled or supply disconnected"
+        elif seq.busy:
+            problem = "an operation is running"
+        else:
+            try:
+                if not await asyncio.to_thread(self.t.set_resolution, on):
+                    problem = "the supply did not confirm " + ("Q4" if on else "Q0")
+            except (OSError, IPSError) as exc:
+                problem = str(exc)
+        if problem:
+            self.pvs["FINE_STEPS"].set(1 if seq is not None and seq.fine else 0, process=False)
+            self._event("refused", f"{'0.1' if on else '1'} mA steps: {problem}")
+            self._publish_resolution()
+            return
+        seq.fine = on
+        self._event("resolution", "0.1 mA steps (extended resolution, Q4)" if on
+                    else "1 mA steps (normal resolution, Q0)")
+        self._publish_resolution()
+
+    def _publish_resolution(self):
+        ips = self.t
+        decimals = getattr(ips, "current_decimals", None)
+        if decimals is None:
+            text = "unknown"
+        else:
+            text = "0.1 mA (extended)" if ips.extended else "1 mA (normal)"
+            if self.sequencer is not None and self.sequencer.fine and not ips.extended:
+                text = "1 mA: supply reset, 0.1 mA asked"
+        self.pvs["RESOLUTION"].set(text[:39])
 
     def _set_expert(self, value):
         self._expert = bool(int(value))
@@ -391,6 +438,7 @@ class Device(GenesisBaseDevice):
             await self._check_permit()
         self._publish_cryo()
         self.pvs["SYSTEM_CHECK_STATE"].set(self._system_check(st)[:39])
+        self._publish_resolution()
         self._log_csv(values, st, field)
         self.pvs["LAST_OK"].set(time.time())
         self._set_comm(True)

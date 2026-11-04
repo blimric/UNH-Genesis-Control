@@ -1,7 +1,8 @@
 """gui/genesis_magnet.bob (tools/make_magnet_screen.py) and the Panopticon's magnet card.
 
-Every magnet PV on the screens must be one the magnet IOC serves; every
-command that moves the magnet asks first (review issue 14), except HOLD.
+Every magnet PV on the screens must be one the magnet IOC serves; the switch,
+MATCH and outage commands ask first (review issue 14); RAMP and HOLD do not
+(Elena Long, 2026-11-04), and the 0.1 mA step choice never asks.
 """
 
 import importlib
@@ -63,7 +64,7 @@ def test_magnet_pvs_on_both_screens_are_served():
     assert {s["pv"] for s in groups["MAGNET"]["sources"].values()} <= served
 
 
-def test_moves_ask_first_and_hold_never_does():
+def test_switch_commands_ask_first_and_ramp_and_hold_never_do():
     root = ET.parse(BOB).getroot()
     buttons = {}
     for w in root.iter("widget"):
@@ -73,7 +74,10 @@ def test_moves_ask_first_and_hold_never_does():
     assert set(buttons) == {"RAMP", "HOLD", "HEATER_ON_CMD", "HEATER_OFF_CMD", "MATCH", "OUTAGE"}
     for name, w in buttons.items():
         asks = w.findtext("show_confirm_dialog") == "true"
-        assert asks == (name != "HOLD"), name
+        assert asks == (name not in ("RAMP", "HOLD")), name
+    steps = [w for w in root.iter("widget") if w.findtext("name") == "FineSteps"]
+    assert len(steps) == 1 and steps[0].findtext("confirm") == "false"
+    assert steps[0].findtext("pv_name") == "ca://UNH:GEN:MAG:FINE_STEPS"
     # the outage button is the big red one (review issue 19)
     out = buttons["OUTAGE"]
     assert int(out.findtext("width")) >= 400 and int(out.findtext("height")) >= 60
