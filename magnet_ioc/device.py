@@ -32,9 +32,11 @@ Derived:  MAGNET_CURRENT (R0, the supply current, while driven; R16 while
 Operation:  STATE, OPERATION, BUSY, HEATER_PROGRESS, PERMIT, PERMIT_REASON.
 Commands:  TARGET_CURRENT, TARGET_FIELD (sets TARGET_CURRENT by the field
     equation), RAMP, HOLD, HEATER_ON_CMD, HEATER_OFF_CMD, MATCH, OUTAGE (the
-    red button), EXPERT (allows ramps down to 16" of magnet LHe), FINE_STEPS
-    (0.1 mA steps: Q4, extended resolution; off at every start-up) and its
-    read-back RESOLUTION (from the decimals of the supply's current replies).
+    red button), EXPERT (allows ramps down to 16" of magnet LHe).
+Resolution (Elena Long, 2026-11-04): TARGET_CURRENT takes whole 0.1 mA (finer
+    is refused and put back); a ramp to a target with a 0.1 mA digit turns the
+    supply's extended resolution (Q4) on first.  RESOLUTION: the step in use,
+    from the decimals of the supply's current replies.
 
 Every operator request and what came of it goes to an event log (JSONL,
 review issue 16); every poll's current, voltage and status go to a CSV log
@@ -60,7 +62,7 @@ from genesis_common.serial_tcp_base import SerialTcpConnection
 
 from .interlocks import CryoPermit, PermitConfig
 from .ips120_protocol import IPSClient, IPSError, decode_xmn, get_xmn_status
-from .ips120_sequences import MagnetConfig, MagnetSequencer
+from .ips120_sequences import SUPPLY_STEP_FINE_A, MagnetConfig, MagnetSequencer, on_step
 
 log = logging.getLogger(__name__)
 
@@ -124,7 +126,9 @@ class Device(GenesisBaseDevice):
         p["HELIUM_LOW_WARNING"] = b.boolIn("HELIUM_LOW_WARNING", ZNAM="Helium OK",
                                            ONAM="LOW HELIUM", OSV="MAJOR")
         p["TARGET_CURRENT"] = b.aOut("TARGET_CURRENT", EGU="A", PREC=4, DRVL=0.0,
-                                     DRVH=self.cfg.max_current - 0.001, initial_value=0.0)
+                                     DRVH=self.cfg.max_current - 0.001, initial_value=0.0,
+                                     on_update=self._set_target_current)
+        self._target = 0.0
         p["TARGET_FIELD"] = b.aOut("TARGET_FIELD", EGU="T", PREC=5, initial_value=0.0,
                                    on_update=self._set_target_field)
         p["EXPERT"] = b.boolOut("EXPERT", ZNAM="Normal", ONAM="Expert", initial_value=0,
@@ -132,9 +136,6 @@ class Device(GenesisBaseDevice):
         # V4: the operator's bypass of the R24 check; never on at start-up
         p["IGNORE_INDUCTANCE"] = b.boolOut("IGNORE_INDUCTANCE", ZNAM="Check", ONAM="BYPASSED",
                                            initial_value=0, on_update=self._set_ignore_inductance)
-        # Elena Long (2026-11-04): 0.1 mA steps (IPS120 extended resolution, Q4)
-        p["FINE_STEPS"] = b.boolOut("FINE_STEPS", ZNAM="1 mA steps", ONAM="0.1 mA steps",
-                                    initial_value=0, on_update=self._set_fine_steps)
         for name, handler in (("RAMP", self._cmd_ramp), ("HOLD", self._cmd_hold),
                               ("HEATER_ON_CMD", self._cmd_heater_on),
                               ("HEATER_OFF_CMD", self._cmd_heater_off),
@@ -162,7 +163,6 @@ class Device(GenesisBaseDevice):
         """Reads only (issue 18)."""
         self.pvs["VERSION"].set(str(self.t.read_version())[:39])
         override = self.sequencer.inductance_override if self.sequencer else False
-        fine = self.sequencer.fine if self.sequencer else False
         self.sequencer = MagnetSequencer(
             self.t, self.cfg, permit=self._check_permit, event=self._event,
             state=lambda text: self.pvs["STATE"].set(str(text)[:39]),
@@ -170,7 +170,6 @@ class Device(GenesisBaseDevice):
             progress_off=lambda pct: self.pvs["HEATER_OFF_PROGRESS"].set(float(pct)),
             heater=lambda text: self.pvs["HEATER_CURRENT_STATE"].set(str(text)[:39]))
         self.sequencer.inductance_override = override
-        self.sequencer.fine = fine      # the next ramp re-sends and confirms Q4
         # V4's start-up inductance check: R24, a read only
         self.sequencer.note_inductance(self.t.read_inductance())
         self.pvs["INDUCTANCE_CHECK"].set(self.sequencer.inductance_text()[:39])
@@ -237,10 +236,24 @@ class Device(GenesisBaseDevice):
         if self._gate("OUTAGE"):
             asyncio.ensure_future(self.sequencer.outage())
 
+    def _set_target_current(self, amps):
+        """Elena Long (2026-11-04): whole 0.1 mA only, the supply's finest step
+        (extended resolution); a finer target is refused and put back."""
+        amps = float(amps)
+        if on_step(amps, SUPPLY_STEP_FINE_A):
+            self._target = amps
+            return
+        self.pvs["TARGET_CURRENT"].set(self._target, process=False)
+        self._event("refused", f"target {amps:.6g} A is finer than the supply's 0.1 mA step; "
+                    f"kept {self._target:.4f} A")
+        if self.sequencer is None or not self.sequencer.busy:
+            self.pvs["STATE"].set("REFUSED: target finer than 0.1 mA step")
+
     def _set_target_field(self, field_t):
         amps = (float(field_t) - self.field_offset) / self.field_slope
         if math.isfinite(amps) and 0.0 <= amps < self.cfg.max_current:
-            self.pvs["TARGET_CURRENT"].set(round(amps, 4))
+            self._target = round(amps, 4)
+            self.pvs["TARGET_CURRENT"].set(self._target, process=False)
         else:
             self.pvs["TARGET_FIELD"].set_alarm(severity=alarm.MAJOR_ALARM, alarm=alarm.WRITE_ALARM)
 
@@ -252,34 +265,6 @@ class Device(GenesisBaseDevice):
         self._event("inductance", "R24 check BYPASSED by the operator" if on
                     else "R24 check restored")
 
-    async def _set_fine_steps(self, value):
-        """0.1 mA steps on (Q4) or off (Q0), confirmed from the supply's reply.
-        Not while an operation runs; refused and put back if not confirmed."""
-        on = bool(int(value))
-        seq = self.sequencer
-        if seq is not None and seq.fine == on:
-            return
-        problem = None
-        if not self._gate("FINE_STEPS"):
-            problem = "writes disabled or supply disconnected"
-        elif seq.busy:
-            problem = "an operation is running"
-        else:
-            try:
-                if not await asyncio.to_thread(self.t.set_resolution, on):
-                    problem = "the supply did not confirm " + ("Q4" if on else "Q0")
-            except (OSError, IPSError) as exc:
-                problem = str(exc)
-        if problem:
-            self.pvs["FINE_STEPS"].set(1 if seq is not None and seq.fine else 0, process=False)
-            self._event("refused", f"{'0.1' if on else '1'} mA steps: {problem}")
-            self._publish_resolution()
-            return
-        seq.fine = on
-        self._event("resolution", "0.1 mA steps (extended resolution, Q4)" if on
-                    else "1 mA steps (normal resolution, Q0)")
-        self._publish_resolution()
-
     def _publish_resolution(self):
         ips = self.t
         decimals = getattr(ips, "current_decimals", None)
@@ -287,8 +272,6 @@ class Device(GenesisBaseDevice):
             text = "unknown"
         else:
             text = "0.1 mA (extended)" if ips.extended else "1 mA (normal)"
-            if self.sequencer is not None and self.sequencer.fine and not ips.extended:
-                text = "1 mA: supply reset, 0.1 mA asked"
         self.pvs["RESOLUTION"].set(text[:39])
 
     def _set_expert(self, value):

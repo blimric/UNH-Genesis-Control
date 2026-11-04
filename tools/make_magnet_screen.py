@@ -152,8 +152,8 @@ def ramp_card():
     w = [pan.card("Ramp", x, y, 460, 300, "Ramp")]
     w.append(pan.label("Target current (A)", 466, 84, 200, 16, 9, False, pan.MUTED))
     w.append(entry(f"{MAG}:TARGET_CURRENT", 466, 100, 200, name="TargetCurrent",
-                   tooltip="0 to just under the software limit, in 1 mA steps, or 0.1 mA with "
-                           "the 0.1 mA step chosen below"))
+                   tooltip="0 to just under the software limit, to 0.1 mA (the IPS120's finest "
+                           "step); a 0.1 mA digit switches the supply to 0.1 mA steps"))
     w.append(pan.label("or target field (T)", 680, 84, 200, 16, 9, False, pan.MUTED))
     w.append(entry(f"{MAG}:TARGET_FIELD", 680, 100, 200, name="TargetField",
                    tooltip="sets the target current by the field equation"))
@@ -165,17 +165,15 @@ def ramp_card():
     w.append(command("HOLD", f"{MAG}:HOLD", 680, 140, 200, 40, bg=RED_LIGHT, size=14, bold=True,
                      name="HoldButton"))
     w.append(pan.label("RAMP and HOLD act at once (no pop-up).", 680, 184, 230, 16, 8, False, pan.MUTED))
-    # 1 mA or 0.1 mA steps (IPS120 extended resolution, Q4); 1 mA at every start-up
-    w.append(pan.label("Step", 466, 186, 36, 16, 9, False, pan.MUTED))
-    w.append(combo(f"{MAG}:FINE_STEPS", 502, 183, 164, 22, name="FineSteps", confirm=False))
     w.append(fld("State", f"{MAG}:STATE", 466, 212, 440, 12))
     w.append(fld("Operation", f"{MAG}:OPERATION", 466, 254, 214, 11, bold=False))
     w.append(pan.label("Busy", 690, 254, 60, 15, 9, False, pan.MUTED))
     w.append(pan.led(f"{MAG}:BUSY", 690, 274, 18))
     w.append(fld("Supply step", f"{MAG}:RESOLUTION", 740, 254, 166, 10, bold=False))
-    w.append(pan.label("3 A/min, never faster; smallest change 1 mA (0.1 mA with the 0.1 mA step).  "
-                       "Ramps only in driven mode: from persistent, MATCH, then heater ON (H1), "
-                       "then RAMP.", 466, 300, 440, 46, 9, False, pan.MUTED, wrap=True))
+    w.append(pan.label("3 A/min, never faster.  Smallest change 0.1 mA: a target with a 0.1 mA "
+                       "digit switches the supply to 0.1 mA steps first; finer is refused.  Ramps "
+                       "only in driven mode: from persistent, MATCH, then heater ON (H1), then RAMP.",
+                       466, 300, 440, 46, 9, False, pan.MUTED, wrap=True))
     return w
 
 

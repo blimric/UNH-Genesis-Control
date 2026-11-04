@@ -2,7 +2,7 @@
 
 Every magnet PV on the screens must be one the magnet IOC serves; the switch,
 MATCH and outage commands ask first (review issue 14); RAMP and HOLD do not
-(Elena Long, 2026-11-04), and the 0.1 mA step choice never asks.
+(Elena Long, 2026-11-04).
 """
 
 import importlib
@@ -75,9 +75,6 @@ def test_switch_commands_ask_first_and_ramp_and_hold_never_do():
     for name, w in buttons.items():
         asks = w.findtext("show_confirm_dialog") == "true"
         assert asks == (name not in ("RAMP", "HOLD")), name
-    steps = [w for w in root.iter("widget") if w.findtext("name") == "FineSteps"]
-    assert len(steps) == 1 and steps[0].findtext("confirm") == "false"
-    assert steps[0].findtext("pv_name") == "ca://UNH:GEN:MAG:FINE_STEPS"
     # the outage button is the big red one (review issue 19)
     out = buttons["OUTAGE"]
     assert int(out.findtext("width")) >= 400 and int(out.findtext("height")) >= 60

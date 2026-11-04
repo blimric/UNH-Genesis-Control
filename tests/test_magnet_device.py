@@ -185,26 +185,26 @@ def test_a_quench_is_reported_and_recorded(device, tmp_path):
     assert any(r["kind"] == "fault" for r in rows)
 
 
-def test_fine_steps_send_q4_and_show_the_resolution(device):
-    # Elena Long (2026-11-04): the 0.1 mA option, off at start-up
+def test_target_current_takes_whole_0_1_mA_and_refuses_finer(device):
+    # Elena Long (2026-11-04): 0.1 mA is the supply's finest step
+    dev, _, recs = device()
+    recs["TARGET_CURRENT"].set(48.4031, process=False)
+    dev._set_target_current(48.4031)
+    assert recs["TARGET_CURRENT"].value == 48.4031
+    recs["TARGET_CURRENT"].set(48.40304, process=False)
+    dev._set_target_current(48.40304)
+    assert recs["TARGET_CURRENT"].value == 48.4031
+    assert recs["LAST_EVENT"].value.startswith("refused")
+    assert recs["STATE"].value == "REFUSED: target finer than 0.1 mA step"
+
+
+def test_resolution_follows_the_supply(device):
     dev, emu, recs = device(write_enabled=True)
-    assert recs["FINE_STEPS"].value == 0 and emu.resolution == 0
     asyncio.run(dev.do_reads())
     assert recs["RESOLUTION"].value == "1 mA (normal)"
-    asyncio.run(dev._set_fine_steps(1))
-    assert emu.resolution == 4 and dev.sequencer.fine
+    assert dev.t.set_resolution(True)
     asyncio.run(dev.do_reads())
     assert recs["RESOLUTION"].value == "0.1 mA (extended)"
     emu.power_cycle()                                  # the supply forgets Q4
     asyncio.run(dev.do_reads())
-    assert recs["RESOLUTION"].value.startswith("1 mA: supply reset")
-    asyncio.run(dev._set_fine_steps(0))
-    assert emu.resolution == 0 and not dev.sequencer.fine
-
-
-def test_fine_steps_are_refused_while_writes_are_disabled(device):
-    dev, emu, recs = device(write_enabled=False)
-    recs["FINE_STEPS"].set(1, process=False)
-    asyncio.run(dev._set_fine_steps(1))
-    assert emu.resolution == 0 and recs["FINE_STEPS"].value == 0
-    assert recs["LAST_EVENT"].value.startswith("refused")
+    assert recs["RESOLUTION"].value == "1 mA (normal)"

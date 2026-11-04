@@ -482,9 +482,11 @@ def test_failed_fetch_blocks():
     assert not ok and "failed" in reason
 
 
-# ------------------------------------------------------------------ 1 mA trims
-# Elena Long (2026-11-04): the supply's smallest step is 1 mA (IPS120-10 manual,
-# I command).  On 2026-10-24 trims of 10 mA or less did nothing.
+# ------------------------------------------------------------------ 1 mA and 0.1 mA steps
+# Elena Long (2026-11-04): the supply sets its current in 1 mA steps, or 0.1 mA
+# with extended resolution (Q4; manual, Q and I commands).  A target with a
+# 0.1 mA digit turns Q4 on; finer is refused.  Q answers nothing and a power
+# cycle returns the supply to normal, so the mode is read from the replies.
 def _driven_at(rig, amps):
     r = rig()
     r.emu.output = r.emu.magnet = amps
@@ -498,33 +500,37 @@ def _ramp(r, target):
     run(go())
 
 
-def test_a_1_mA_trim_moves_the_magnet(rig):
+def test_a_1_mA_trim_moves_the_magnet_in_normal_resolution(rig):
     r = _driven_at(rig, 48.403)
     _ramp(r, 48.402)
     assert r.states[-1] == "COMPLETE / HOLD", r.events
-    assert "I48.402" in r.commands() and abs(r.emu.output - 48.402) < 0.0005
+    assert "I48.402" in r.commands() and r.emu.resolution == 0
+    assert abs(r.emu.output - 48.402) < 0.0005
 
 
-def test_a_change_below_1_mA_is_reported_and_nothing_moves(rig):
+def test_a_0_1_mA_digit_turns_extended_resolution_on(rig):
     r = _driven_at(rig, 48.403)
-    _ramp(r, 48.4034)
-    assert r.states[-1] == "NOT MOVED: CHANGE < 1 mA STEP", r.states[-3:]
-    assert any("0.40 mA is below the supply's 1 mA step" in m for _, m in r.events), r.events
+    _ramp(r, 48.4031)
+    assert r.states[-1] == "COMPLETE / HOLD", r.events
+    assert r.emu.resolution == 4 and "I48.4031" in r.commands()
+    assert abs(r.emu.output - 48.4031) < 0.00005
+
+
+def test_a_target_finer_than_0_1_mA_is_refused_and_nothing_moves(rig):
+    r = _driven_at(rig, 48.403)
+    _ramp(r, 48.40304)
+    assert r.states[-1] == "REFUSED: target finer than 0.1 mA step", r.states[-3:]
     assert not [c for c in r.commands() if c[:1] == "I"] and r.emu.output == 48.403
 
 
-def test_a_target_between_steps_is_rounded_and_says_so(rig):
+def test_no_move_when_q4_is_not_confirmed(rig):
     r = _driven_at(rig, 48.403)
-    _ramp(r, 48.4056)
-    assert r.states[-1] == "COMPLETE / HOLD", r.events
-    assert any("rounded to 48.406 A" in m for _, m in r.events), r.events
-    assert "I48.406" in r.commands()
+    r.ips.set_resolution = lambda extended: False
+    _ramp(r, 48.4031)
+    assert r.states[-1].startswith("REFUSED: 0.1 mA steps"), r.states[-3:]
+    assert not [c for c in r.commands() if c[:1] == "I"] and r.emu.output == 48.403
 
 
-# ------------------------------------------------------------------ 0.1 mA steps
-# Elena Long (2026-11-04): the operator's option of extended resolution (Q4,
-# 0.1 mA steps; manual, Q and I commands).  Q answers nothing and a power cycle
-# returns the supply to normal, so the mode is read from the current replies.
 def test_reply_decimals_give_the_resolution():
     from magnet_ioc.ips120_protocol import response_decimals
     assert response_decimals("R+48.4031") == 4 and response_decimals("R+48.403") == 3
@@ -538,36 +544,3 @@ def test_q4_is_confirmed_from_the_reply_and_a_power_cycle_undoes_it(rig):
     r.ips.read_demand_current()
     assert not r.ips.extended and r.ips.current_decimals == 3
     assert r.ips.set_resolution(False) is True and r.emu.resolution == 0
-
-
-def test_a_0_1_mA_trim_with_fine_steps(rig):
-    r = _driven_at(rig, 48.403)
-    r.seq.fine = True
-    _ramp(r, 48.4031)
-    assert r.states[-1] == "COMPLETE / HOLD", r.events
-    assert r.emu.resolution == 4 and "I48.4031" in r.commands()
-    assert abs(r.emu.output - 48.4031) < 0.00005
-
-
-def test_fine_steps_report_a_change_below_0_1_mA(rig):
-    r = _driven_at(rig, 48.403)
-    r.seq.fine = True
-    _ramp(r, 48.40304)
-    assert r.states[-1] == "NOT MOVED: CHANGE < 0.1 mA STEP", r.states[-3:]
-    assert any("0.04 mA is below the supply's 0.1 mA step" in m for _, m in r.events), r.events
-    assert not [c for c in r.commands() if c[:1] == "I"]
-
-
-def test_fine_steps_refuse_when_the_supply_does_not_confirm_q4(rig):
-    r = _driven_at(rig, 48.403)
-    r.seq.fine = True
-    r.ips.set_resolution = lambda extended: False
-    _ramp(r, 48.4031)
-    assert r.states[-1].startswith("REFUSED: 0.1 mA steps"), r.states[-3:]
-    assert not [c for c in r.commands() if c[:1] == "I"] and r.emu.output == 48.403
-
-
-def test_without_fine_steps_the_command_keeps_three_decimals(rig):
-    r = _driven_at(rig, 48.403)
-    _ramp(r, 48.4056)
-    assert "I48.406" in r.commands() and r.emu.resolution == 0
