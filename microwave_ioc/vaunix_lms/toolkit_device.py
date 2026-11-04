@@ -518,6 +518,7 @@ class Device(BaseDevice):
             self.t.acquire()  # Remote safe OFF is mandatory before ownership.
             self._off()      # Independently confirm from a new vendor read.
             self.t.limits()
+            self._apply_startup_power()
             self.read_outs()
             self._session += 1
             self.pvs[self.channel + "_CONTROL_SESSION"].set(self._session)
@@ -534,6 +535,28 @@ class Device(BaseDevice):
             self._unknown(exc)
             self.pvs[self.channel + "_Connected"].set(False)
             self.pvs[self.channel + "_CONTROL_OWNED"].set(False)
+
+    def _apply_startup_power(self):
+        """Elena Long (2026-11-04): put the source at ``startup_power_dbm`` on
+        every (re)connection, with RF already confirmed OFF.  On 2026-10-24 the
+        Vaunix came back at -40 dBm after an IOC restart; the start script's
+        +10 dBm (prepare_source) runs only at a full start.  A failure is
+        logged and shown on RF_ERROR; it does not drop the connection."""
+        dbm = self.settings.get("startup_power_dbm")
+        if dbm is None:
+            return
+        try:
+            dbm = float(dbm)
+            safety = self.settings["rf_safety"]
+            if not safety["power_min_dbm"] <= dbm <= safety["power_max_dbm"]:
+                raise ValueError(f"start-up power {dbm} dBm outside configured limits")
+            achieved = float(self.t.set_power(dbm))
+            if abs(achieved - dbm) > 0.26:      # the Vaunix steps in 0.25 dB
+                raise OSError(f"start-up power reads {achieved} dBm, not {dbm}")
+            LOG.info("start-up power set: %.2f dBm", achieved)
+        except (OSError, ShimRejected, ValueError) as exc:
+            LOG.error("Vaunix start-up power not applied: %s", exc)
+            self.pvs[self.channel + "_RF_ERROR"].set("start-up power not set")
 
     def reconnect(self):
         self._rf_generation += 1

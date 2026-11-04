@@ -151,6 +151,9 @@ vaunix_lms:
   frequency_max_ghz: 11.8333333333
   power_min_dbm: -40.0
   power_max_dbm: 10.0
+  # sent on every connection, RF confirmed OFF first (Ells 2026-11-04: the
+  # source runs at +10 dBm; it came back at -40 dBm after an IOC restart)
+  startup_power_dbm: 10.0
 
   rf_safety:
     # Expert mode window (Elena Long, 2026-10-24): 134-144 GHz / 12, used

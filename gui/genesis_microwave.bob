@@ -1408,6 +1408,42 @@
     </font>
     <transparent>true</transparent>
   </widget>
+  <!-- Elena Long (2026-11-04): Vaunix power setpoint, -40 to +10 dBm; the IOC
+       sets +10 dBm on every connection (startup_power_dbm) -->
+  <widget type="label" version="2.0.0">
+    <name>VX_PWRC_L</name>
+    <x>625</x>
+    <y>745</y>
+    <width>105</width>
+    <height>24</height>
+    <text>Set power:</text>
+    <font>
+      <font family="Liberation Sans" style="REGULAR" size="13.0" />
+    </font>
+    <transparent>true</transparent>
+  </widget>
+  <widget type="textentry" version="2.0.0">
+    <name>VX_PWRC</name>
+    <x>735</x>
+    <y>743</y>
+    <width>115</width>
+    <height>25</height>
+    <pv_name>ca://UNH:GEN:MW:SRC:MW_PWRC</pv_name>
+    <precision>2</precision>
+    <tooltip>Vaunix source power, -40 to +10 dBm in 0.25 dB steps; +10 dBm is set on every IOC connection</tooltip>
+  </widget>
+  <widget type="label" version="2.0.0">
+    <name>VX_PWRC_U</name>
+    <x>855</x>
+    <y>745</y>
+    <width>45</width>
+    <height>24</height>
+    <text>dBm</text>
+    <font>
+      <font family="Liberation Sans" style="REGULAR" size="13.0" />
+    </font>
+    <transparent>true</transparent>
+  </widget>
   <widget type="label" version="2.0.0">
     <name>VX_RF_L</name>
     <x>925</x>

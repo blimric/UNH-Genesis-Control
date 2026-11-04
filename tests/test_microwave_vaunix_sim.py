@@ -196,6 +196,7 @@ class VaunixLocalSimulation(unittest.TestCase):
         dummy._clear_commands = lambda: None
         dummy._unknown = lambda message: None
         dummy._off = lambda: None
+        dummy._apply_startup_power = lambda: None
         dummy._start_remote_service = lambda: None
         dummy._create_connection = lambda: LocalSimulationConnection(settings)
         dummy.read_outs = lambda: None
@@ -275,3 +276,45 @@ class VaunixLocalSimulation(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class VaunixStartupPower(unittest.TestCase):
+    """Elena Long (2026-11-04): the IOC puts the source at startup_power_dbm on
+    every connection (RF already confirmed OFF)."""
+
+    @classmethod
+    def setUpClass(cls):
+        with SIM_CONFIG.open() as stream:
+            cls.settings = yaml.safe_load(stream)["vaunix_lms"]
+        physical = SIM_CONFIG.parents[2] / "microwave_physical" / "vaunix_lms" / "settings.yaml"
+        with physical.open() as stream:
+            cls.physical = yaml.safe_load(stream)["vaunix_lms"]
+
+    def dummy(self, **over):
+        settings = {**self.settings, **over}
+        error = SimpleNamespace(value=None)
+        error.set = lambda value: setattr(error, "value", value)
+        return SimpleNamespace(settings=settings, channel="MW", t=LocalSimulationConnection(settings),
+                               pvs={"MW_RF_ERROR": error})
+
+    def test_the_lab_profile_starts_at_plus_10_dbm(self):
+        self.assertEqual(self.physical["startup_power_dbm"], 10.0)
+
+    def test_connection_sets_the_startup_power(self):
+        d = self.dummy(startup_power_dbm=10.0)
+        self.assertEqual(d.t.read()[1], -40.0)
+        Device._apply_startup_power(d)
+        self.assertEqual(d.t.read()[1], 10.0)
+        self.assertIsNone(d.pvs["MW_RF_ERROR"].value)
+
+    def test_no_setting_leaves_the_power_alone(self):
+        d = self.dummy()
+        d.settings.pop("startup_power_dbm", None)
+        Device._apply_startup_power(d)
+        self.assertEqual(d.t.read()[1], -40.0)
+
+    def test_a_startup_power_outside_the_limits_is_refused_and_shown(self):
+        d = self.dummy(startup_power_dbm=15.0)
+        Device._apply_startup_power(d)
+        self.assertEqual(d.t.read()[1], -40.0)
+        self.assertEqual(d.pvs["MW_RF_ERROR"].value, "start-up power not set")

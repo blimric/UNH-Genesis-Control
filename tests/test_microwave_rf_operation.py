@@ -101,6 +101,7 @@ class Transport:
         v=self.command('SWEEP?').split()
         return *(float(n)/1e9 for n in v[:3]), *map(int,v[3:])
     def set_rf(self, enabled): return int(self.command(f'RF {int(enabled)}').split()[1])
+    def set_power(self, dbm): return float(self.command(f'POW {float(dbm):.2f}').split()[1])
     def set_sweep_flag(self, name, enabled): return int(self.command(f'SWEEP_{name} {int(enabled)}').split()[1])
     def close(self): self.lease.disconnect(self.client)
 
