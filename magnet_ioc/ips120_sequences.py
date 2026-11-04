@@ -65,6 +65,11 @@ class Aborted(Exception):
 
 
 # ------------------------------------------------------------------ config
+#: The smallest current change the supply makes: the IPS120-10 manual, I command
+#: (section 8.2): 0.001 A at normal resolution.  Genesis never selects extended
+#: resolution (Q4, 0.0001 A), and the supply returns to normal at power-up.
+SUPPLY_STEP_A = 0.001
+
 @dataclass
 class MagnetConfig:
     max_current: float = 65.0                 # A, software limit (AMI rated 67.9 A)
@@ -73,7 +78,9 @@ class MagnetConfig:
     rate_bands: tuple = ((65.0, 3.0),)
     #: independent cap (Ells): never more, whatever the band table says
     max_sweep_rate: float = 3.0               # A/min
-    current_tolerance: float = 0.01           # A
+    # Elena Long (2026-11-04): 0.5 mA, half of SUPPLY_STEP_A, so a 1 mA trim moves
+    # the magnet (at 10 mA, trims of 10 mA or less did nothing)
+    current_tolerance: float = 0.0005         # A
     match_tolerance: float = 0.01             # A
     #: V4: the supply's own H1 check needs the supply on the persistent
     #: current more tightly than the general match
@@ -610,6 +617,9 @@ class MagnetSequencer:
     async def ramp(self, target: float):
         cfg = self.cfg
         validate_current(target, "target current", cfg.max_current)
+        # the supply takes the current to 1 mA (SUPPLY_STEP_A): aim at what it can
+        # reach, so the 0.5 mA completion test can always be met
+        requested, target = target, round(target / SUPPLY_STEP_A) * SUPPLY_STEP_A
         await self._require_permit()                                   # issue 13: permit first
         await self.preflight()                                         # issues 2, 17
         self.set_state("PREPARING")
@@ -625,6 +635,16 @@ class MagnetSequencer:
         await self._check()
         r23 = await self._io(self.ips.read_lead_resistance)
         current = await self._io(self.ips.read_demand_current)
+        # Elena Long (2026-11-04): tell the operator when the change asked for is
+        # below the supply's 1 mA step, or was rounded to it
+        too_small = (abs(current - target) <= cfg.current_tolerance
+                     and abs(requested - current) > 1e-9)
+        if too_small:
+            self.event("ramp", f"change of {abs(requested - current) * 1000:.2f} mA is below "
+                       f"the supply's 1 mA step: not moved")
+        elif abs(requested - target) > 1e-9:
+            self.event("ramp", f"target {requested:.4f} A rounded to {target:.3f} A "
+                       f"(the supply's 1 mA step)")
         track = _Track()
         while abs(current - target) > cfg.current_tolerance:
             nxt = next_ramp_target(current, target, cfg.current_tolerance, cfg.rate_bands)
@@ -666,6 +686,9 @@ class MagnetSequencer:
                 if now > deadline:
                     raise Aborted(f"segment to {nxt:.2f} A not finished in time")
         await self._io(self.ips.hold)
+        if too_small:
+            self.set_state("NOT MOVED: CHANGE < 1 mA STEP")
+            return
         self.set_state("COMPLETE / HOLD")
         self.event("ramp", f"ramp complete at {current:.3f} A")
 

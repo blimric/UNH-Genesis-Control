@@ -79,7 +79,13 @@ trend_history:
     MAGNET:
       # the IPS120-10 magnet supply (magnet_ioc): its own screen
       # (gui/genesis_magnet.bob); not in the cryo archiver's list, so this
-      # group fills from the moment the service starts
+      # group fills from the moment the service starts.  2 h at 4 s (Elena
+      # Long, 2026-11-04): a 3 A/min ramp lasts minutes, and at the default
+      # 6 h / 12 s it filled only the right-hand pixels of the Magnet tab's
+      # plots; the master archiver keeps the full record
+      window: 7200
+      interval: 4
+      time_unit: min
       sources:
         FIELD: {pv: UNH:GEN:MAG:FIELD, egu: T}
         CURRENT: {pv: UNH:GEN:MAG:CURRENT, egu: A}

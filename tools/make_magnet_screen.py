@@ -151,7 +151,7 @@ def ramp_card():
     w = [pan.card("Ramp", x, y, 460, 300, "Ramp")]
     w.append(pan.label("Target current (A)", 466, 84, 200, 16, 9, False, pan.MUTED))
     w.append(entry(f"{MAG}:TARGET_CURRENT", 466, 100, 200, name="TargetCurrent",
-                   tooltip="0 to just under the software limit"))
+                   tooltip="0 to just under the software limit, in 1 mA steps (the IPS120's smallest)"))
     w.append(pan.label("or target field (T)", 680, 84, 200, 16, 9, False, pan.MUTED))
     w.append(entry(f"{MAG}:TARGET_FIELD", 680, 100, 200, name="TargetField",
                    tooltip="sets the target current by the field equation"))
@@ -166,8 +166,8 @@ def ramp_card():
     w.append(fld("Operation", f"{MAG}:OPERATION", 466, 248, 214, 11, bold=False))
     w.append(pan.label("Busy", 690, 248, 60, 15, 9, False, pan.MUTED))
     w.append(pan.led(f"{MAG}:BUSY", 690, 268, 18))
-    w.append(pan.label("3 A/min, never faster.  Ramps only in driven mode: from persistent, "
-                       "MATCH, then heater ON (H1), then RAMP.", 466, 296, 440, 36, 9, False,
+    w.append(pan.label("3 A/min, never faster; smallest change 1 mA.  Ramps only in driven mode: "
+                       "from persistent, MATCH, then heater ON (H1), then RAMP.", 466, 296, 440, 36, 9, False,
                        pan.MUTED, wrap=True))
     return w
 
@@ -221,6 +221,12 @@ def permit_card():
     return w
 
 
+#: Elena Long (2026-11-04): the field and current trends open on the last 30 min
+#: (a 0-48 A ramp at 3 A/min takes 16 min); zoom out with the plot toolbar to the
+#: 2 h the trend history keeps (configs/target_physical/trend_history).
+TREND_SPAN_MIN = 30
+
+
 def outage_and_trend():
     x, y = 924, 52
     w = [pan.card("Power outage", x, y, 468, 150, "Outage")]
@@ -231,10 +237,10 @@ def outage_and_trend():
                        "the IOC is gone too.", 934, 160, 448, 36, 9, False, pan.MUTED, wrap=True))
     w.append(pan.card("Field trend", x, 208, 468, 644, "Trend"))
     w.append(pan.history_plot("MagnetField", "Magnet field (T)", 932, 238, 452, 300, "MAGNET",
-                              [("Field", "FIELD", pan.NAVY, 0)], [("T", False, 0, 7)], 360))
+                              [("Field", "FIELD", pan.NAVY, 0)], [("T", False, 0, 7)], TREND_SPAN_MIN))
     w.append(pan.history_plot("SupplyCurrent", "Supply current (A)", 932, 544, 452, 300,
                               "MAGNET", [("Current", "CURRENT", (230, 110, 0), 0)],
-                              [("A", False, 0, 65)], 360))
+                              [("A", False, 0, 65)], TREND_SPAN_MIN))
     return w
 
 

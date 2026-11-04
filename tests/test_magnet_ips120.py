@@ -480,3 +480,42 @@ def test_failed_fetch_blocks():
     permit = interlocks.CryoPermit(interlocks.PermitConfig(), fetch=broken)
     ok, reason = asyncio.run(permit.check())
     assert not ok and "failed" in reason
+
+
+# ------------------------------------------------------------------ 1 mA trims
+# Elena Long (2026-11-04): the supply's smallest step is 1 mA (IPS120-10 manual,
+# I command).  On 2026-10-24 trims of 10 mA or less did nothing.
+def _driven_at(rig, amps):
+    r = rig()
+    r.emu.output = r.emu.magnet = amps
+    return r
+
+
+def _ramp(r, target):
+    async def go():
+        assert r.seq.start("ramp", r.seq.ramp, target)
+        await finish(r.seq)
+    run(go())
+
+
+def test_a_1_mA_trim_moves_the_magnet(rig):
+    r = _driven_at(rig, 48.403)
+    _ramp(r, 48.402)
+    assert r.states[-1] == "COMPLETE / HOLD", r.events
+    assert "I48.402" in r.commands() and abs(r.emu.output - 48.402) < 0.0005
+
+
+def test_a_change_below_1_mA_is_reported_and_nothing_moves(rig):
+    r = _driven_at(rig, 48.403)
+    _ramp(r, 48.4034)
+    assert r.states[-1] == "NOT MOVED: CHANGE < 1 mA STEP", r.states[-3:]
+    assert any("0.40 mA is below the supply's 1 mA step" in m for _, m in r.events), r.events
+    assert not [c for c in r.commands() if c[:1] == "I"] and r.emu.output == 48.403
+
+
+def test_a_target_between_steps_is_rounded_and_says_so(rig):
+    r = _driven_at(rig, 48.403)
+    _ramp(r, 48.4056)
+    assert r.states[-1] == "COMPLETE / HOLD", r.events
+    assert any("rounded to 48.406 A" in m for _, m in r.events), r.events
+    assert "I48.406" in r.commands()
