@@ -10,6 +10,9 @@ operation, monitored through common EPICS interfaces, archived with common
 timestamps, and later supervised by higher-level automation and machine-learning
 systems.
 
+> New here?  Run a simulated cool-down in two commands:
+> [Simulation Quick Start Guide](docs/SIMULATION_QUICK_START.md).
+
 ## Current scope
 
 The Phase-I architecture is organized around four target subsystems:
@@ -150,6 +153,12 @@ The historical physical-no-RF commissioning record is retained in documentation
 only; its dedicated runtime scripts, IOC, and Phoebus profile have been removed.
 
 ## Simulation
+
+**Try it on your own computer:** a simulated cool-down with the real Genesis
+software and screens, no hardware needed -- see the
+[Simulation Quick Start Guide](docs/SIMULATION_QUICK_START.md)
+(`bash tools/sim_setup.sh` once, then `bash tools/sim.sh`).  The full guide
+is [docs/COOLDOWN_SIM.md](docs/COOLDOWN_SIM.md).
 
 Physical and simulation configurations are intentionally separate.
 
