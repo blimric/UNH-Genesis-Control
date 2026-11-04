@@ -366,3 +366,28 @@ def test_positive_only_group_publishes_zeros_as_gaps(th):
     _, (v,) = lin.arrays(1100.0)
     assert list(p[-4:][[0, 3]]) == [5.0, 7.0] and np.isnan(p[-3]) and np.isnan(p[-2])
     assert list(v[-4:]) == [5.0, 0.0, -1.0, 7.0]
+
+
+def test_simulated_time_comes_from_the_time_pv(th, tmp_path):
+    # Elena Long (2026-11-04): under the simulator the plots read in simulated
+    # time (UNH:GEN:SIM:SIM_TIME), whatever the speed
+    import asyncio
+    settings = {"time_pv": "UNH:GEN:SIM:SIM_TIME", "archive_path": str(tmp_path), "channels": ["None"],
+                "window": 3600, "interval": 12,
+                "groups": {"MAG": {"sources": {"M1_TI": "UNH:GEN:CRYO:MAG:M1_TI"}}}}
+    dev = th.Device("UNH:GEN:HIST", settings)
+    assert dev.backfilled == 0 and not dev.groups[0].mark_gaps
+    dev._started = True
+    recs = th._stub.builder.records
+    cb = dev._callback(dev.groups[0], dev.groups[0].sources[0])
+    cb(300.0)
+    assert asyncio.run(dev.do_reads()) and recs["MAG:T_REF"].value == 0.0   # no sim time yet
+    for i, kelvin in enumerate((300.0, 250.0, 200.0)):
+        cb(kelvin)
+        dev._time_callback(NOON + 225.0 * i)          # 225 sim-s per tick, as at 225x
+        asyncio.run(dev.do_reads())
+    t = recs["MAG:TIME"].value
+    v = recs["MAG:M1_TI"].value
+    assert recs["MAG:T_REF"].value == NOON + 450.0
+    assert list(v[-3:]) == [300.0, 250.0, 200.0]      # no NaN gaps between the ticks
+    assert t[-1] == 0 and t[-2] == pytest.approx(-3.75) and t[-3] == pytest.approx(-7.5)

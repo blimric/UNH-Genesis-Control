@@ -37,10 +37,14 @@ running, the clock jumped forward) gets one NaN sample, which breaks the line.
 Time base
 ---------
 Wall-clock epoch seconds (time.time()), the same clock the archiver stamps its
-rows with (datetime.now(), local time).  Under the cool-down simulator the
-IOCs, the archiver and this service all run on wall time while the simulated
-cool-down advances at N x speed, so at speed N a 15-minute window spans
-N x 15 simulated minutes -- exactly as the strip charts did.
+rows with (datetime.now(), local time).
+
+Simulated time (Elena Long, 2026-11-04): with ``time_pv`` set (only the
+cool-down simulator sets it, to its UNH:GEN:SIM:SIM_TIME), "now" is that PV's
+latest value, so the plots read in simulated time whatever the simulation's
+speed: a 4 h cool-down run at 200x looks like a 4 h cool-down.  The archive
+back-fill (wall-stamped) is skipped, nothing is sampled until the first value
+arrives, and the jumps between ticks at high speed are not marked as gaps.
 
 Back-fill
 ---------
@@ -317,6 +321,9 @@ class Group:
     #: publish readings <= 0 as gaps (NaN): a log-scale plot can then autoscale
     #: (Phoebus's log autoscale breaks on a 0; Elena Long, 2026-10-24)
     positive_only: bool = False
+    #: mark a late sample with a NaN gap (off under simulated time, where each
+    #: tick may jump many intervals)
+    mark_gaps: bool = True
 
     def __post_init__(self):
         if self.time_unit not in TIME_UNITS:
@@ -357,7 +364,8 @@ class Group:
             if now < last:                                      # clock stepped back
                 self.buffer.drop_after(now)
                 last = self.buffer.last_time()
-            if not math.isnan(last) and now - last > GAP_INTERVALS * self.interval:
+            if (self.mark_gaps and not math.isnan(last)
+                    and now - last > GAP_INTERVALS * self.interval):
                 self.buffer.append(last + self.interval, [NAN] * len(self.sources))
         self.buffer.append(now, [self.latest[s.key] for s in self.sources])
 
@@ -478,12 +486,19 @@ class Device(BaseDevice):
         else:
             self.archive_path = None
         self.clock = time.time
+        #: simulated time: "now" from this PV (the cool-down simulator's clock)
+        self.time_pv = str(settings.get('time_pv') or '')
+        self._sim_now = NAN
+        if self.time_pv:
+            self.clock = lambda: self._sim_now
+            for g in self.groups:
+                g.mark_gaps = False
         self.monitors = []
         self.connected = set()
         self._started = False
         self.backfilled = 0
         super().__init__(device_name, settings)
-        if settings.get('backfill', True) and self.archive_path is not None:
+        if settings.get('backfill', True) and self.archive_path is not None and not self.time_pv:
             self.backfill()
 
     def _create_pvs(self):
@@ -491,8 +506,9 @@ class Device(BaseDevice):
         self.pvs['Hist_Sources'] = builder.longIn('Hist_Sources')
         self.pvs['Hist_Connected'] = builder.longIn('Hist_Connected')
         self.pvs['Hist_Backfilled'] = builder.longIn('Hist_Backfilled')
+        t0 = self.clock()
         for g in self.groups:
-            rel, cols = g.arrays(self.clock())
+            rel, cols = g.arrays(t0 if math.isfinite(t0) else 0.0)
             self.pvs[f'{g.name}:TIME'] = builder.WaveformIn(
                 f'{g.name}:TIME', initial_value=rel, EGU=g.time_unit,
                 DESC=f'{g.name} sample time rel. to T_REF')
@@ -541,6 +557,11 @@ class Device(BaseDevice):
                         s.pv, self._callback(g, s), notify_disconnect=True))
                 except Exception as e:  # noqa: BLE001
                     print(f"Trend history: cannot monitor {s.pv}: {e}")
+        if self.time_pv:
+            try:
+                self.monitors.append(aioca.camonitor(self.time_pv, self._time_callback))
+            except Exception as e:  # noqa: BLE001
+                print(f"Trend history: cannot monitor {self.time_pv}: {e}")
         for unit_pv in sorted({s.unit_pv for g in self.groups for s in g.sources if s.unit_pv}):
             try:
                 self.monitors.append(aioca.camonitor(
@@ -556,6 +577,9 @@ class Device(BaseDevice):
             ok = getattr(value, 'ok', True) is not False
             (self.connected.add if ok else self.connected.discard)(source.pv)
         return callback
+
+    def _time_callback(self, value):
+        self._sim_now = to_float(value)
 
     def _unit_callback(self, unit_pv):
         def callback(value):
@@ -581,6 +605,9 @@ class Device(BaseDevice):
             if not self._started:
                 self._start_monitors()
             now = self.clock()
+            if not math.isfinite(now):                          # simulated time not known yet
+                self.pvs['Hist_Connected'].set(len(self.connected))
+                return True
             for g in self.groups:
                 if g.due(now):
                     g.sample(now)
