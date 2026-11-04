@@ -206,9 +206,10 @@ class MicrowaveGUI(unittest.TestCase):
             if action.attrib.get("type") == "open_display"
         ]
 
+        # 7: the supervisor's "Set target material" (Elena Long, 2026-11-04)
         self.assertEqual(
             len(targets),
-            6,
+            7,
         )
 
         self.assertEqual(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import time
 
 import aioca
@@ -12,6 +13,7 @@ from microwave_ioc.rf_safety import read_snapshot, validate_on, flag, fresh, fin
 
 from .conversions import FrequencyConversion
 from .magic import configured_magic
+from .magic import magic_factor
 from .sweep import sweep_points, validate_dwell
 from .magic import dopant_index
 
@@ -42,6 +44,11 @@ class Device:
         self.follow_dopant_pv = settings.get("follow_dopant_pv")
         # Magic constants depend on the target material too (cryo selection)
         self.material_pv = settings.get("material_pv")
+        # Elena Long (2026-11-04): Magic +/- shown for the present field (the
+        # magnet IOC's FIELD, T): factor (GHz/T) x field, 0 until a material
+        # and dopant with Magic constants are selected
+        self.field_pv = settings.get("field_pv")
+        self._next_magic_display = 0.0
         self._followed_dopant = None
         self._next_dopant_check = 0.0
         self._rf_lock = asyncio.Lock()
@@ -92,6 +99,10 @@ class Device:
         p["Dopant"] = builder.mbbOut(prefix + "Dopant", *names)
         p["MagicPlus"] = builder.Action(prefix + "MagicPlus", on_update=self._magic_plus)
         p["MagicMinus"] = builder.Action(prefix + "MagicMinus", on_update=self._magic_minus)
+        p["MagicPlusGHz"] = builder.aIn(prefix + "MagicPlusGHz", EGU="GHz", PREC=4)
+        p["MagicMinusGHz"] = builder.aIn(prefix + "MagicMinusGHz", EGU="GHz", PREC=4)
+        p["MagicFieldT"] = builder.aIn(prefix + "MagicFieldT", EGU="T", PREC=4)
+        p["MagicStatus"] = builder.stringIn(prefix + "MagicStatus")
         p["RFEnable"] = builder.boolOut(
             prefix + "RFEnable", ZNAM="OFF", ONAM="ON", on_update=self._set_rf, always_update=True)
         p["RFAbort"] = builder.Action(prefix + "RFAbort", on_update=self._abort_rf)
@@ -448,8 +459,48 @@ class Device:
         if index is not None and index != self.pvs["Dopant"].get():
             self.pvs["Dopant"].set(index)
 
+    async def _magic_display(self):
+        """Magic +/- at the present field, for display (every ~2 s): factor
+        (GHz/T, per dopant and material) x field (T); 0 when the material or
+        dopant has no Magic constants, or there is no field reading."""
+        if time.monotonic() < self._next_magic_display:
+            return
+        self._next_magic_display = time.monotonic() + 2.0
+        material, field = None, float("nan")
+        try:
+            if self.material_pv:
+                material = await aioca.caget(self.material_pv, datatype=str, timeout=1.0)
+        except Exception:  # noqa: BLE001 - the cryo IOC may be down
+            material = None
+        try:
+            if self.field_pv:
+                field = float(await aioca.caget(self.field_pv, timeout=1.0))
+        except Exception:  # noqa: BLE001 - the magnet IOC may be down
+            field = float("nan")
+        self.publish_magic(material, field)
+
+    def publish_magic(self, material, field):
+        try:
+            dopant = self.dopants[int(self.pvs["Dopant"].get())]
+        except (IndexError, TypeError, ValueError):
+            dopant = {}
+        plus, minus = (magic_factor(dopant, s, material) if dopant else None for s in "+-")
+        have_field = isinstance(field, float) and math.isfinite(field)
+        if plus is None or minus is None:
+            status = "Set the target material and dopant"
+        elif not have_field:
+            status = "No magnet field reading"
+        else:
+            status = f"{dopant.get('name', '?')} {material} at {field:.4f} T"
+        ok = plus is not None and minus is not None and have_field
+        self.pvs["MagicPlusGHz"].set(plus * field if ok else 0.0)
+        self.pvs["MagicMinusGHz"].set(minus * field if ok else 0.0)
+        self.pvs["MagicFieldT"].set(field if have_field else 0.0)
+        self.pvs["MagicStatus"].set(status[:39])
+
     async def do_reads(self):
         await self._follow_dopant()
+        await self._magic_display()
         if self._rf_lock.locked():
             return True  # RF transition owns confirmation; do not overwrite it.
         rf_observed = False
