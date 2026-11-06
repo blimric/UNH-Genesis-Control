@@ -31,8 +31,12 @@ Derived:  MAGNET_CURRENT (R0, the supply current, while driven; R16 while
     INDUCTANCE_MEAS (from V / dI/dt while ramping).
 Operation:  STATE, OPERATION, BUSY, HEATER_PROGRESS, PERMIT, PERMIT_REASON.
 Commands:  TARGET_CURRENT, TARGET_FIELD (sets TARGET_CURRENT by the field
-    equation), RAMP, HOLD, HEATER_ON_CMD, HEATER_OFF_CMD, MATCH, OUTAGE (the
+    equation), TARGET_NMR (MHz of the target's nucleus, TARGET_NUCLEUS: the
+    deuteron, or the proton for NH3; any of the three fills in the others), RAMP, HOLD, HEATER_ON_CMD, HEATER_OFF_CMD, MATCH, OUTAGE (the
     red button), EXPERT (allows ramps down to 16" of magnet LHe).
+Fringe calibration (fringe_cal.py, 2026-11-06): CAL_FIELD / CAL_FRINGE (the
+    chart's points), CAL_CLEAR, CAL_FIT -> CAL_SLOPE, CAL_OFFSET, CAL_RMS,
+    CAL_EQUATION (B_magnet = slope x B_fringe + offset), CAL_LINE_*.
 Resolution (Elena Long, 2026-11-04): TARGET_CURRENT takes whole 0.1 mA (finer
     is refused and put back); a ramp to a target with a 0.1 mA digit turns the
     supply's extended resolution (Q4) on first.  RESOLUTION: the step in use,
@@ -55,11 +59,14 @@ import math
 import time
 from pathlib import Path
 
+import numpy as np
 from softioc import alarm, builder
 
 from genesis_common.base_device import GenesisBaseDevice
 from genesis_common.serial_tcp_base import SerialTcpConnection
 
+from .fringe_cal import MAX_POINTS as CAL_MAX_POINTS
+from .fringe_cal import FringeCalibration
 from .interlocks import CryoPermit, PermitConfig
 from .ips120_protocol import IPSClient, IPSError, decode_xmn, get_xmn_status
 from .ips120_sequences import SUPPLY_STEP_FINE_A, MagnetConfig, MagnetSequencer, on_step
@@ -68,6 +75,10 @@ log = logging.getLogger(__name__)
 
 GAMMA_D_MHZ_PER_T = 6.53590365
 GAMMA_P_MHZ_PER_T = 42.57747892
+NMR_GAMMA_MHZ_PER_T = {"deuteron": GAMMA_D_MHZ_PER_T, "proton": GAMMA_P_MHZ_PER_T}
+#: target material (UNH:GEN:CRYO:STATE:material) -> the nucleus its NMR sees
+NUCLEUS_BY_MATERIAL = {"ND3": "deuteron", "d-butanol": "deuteron",
+                       "d-propanediol": "deuteron", "NH3": "proton"}
 SLOW_EVERY = 10
 
 
@@ -83,7 +94,15 @@ class Device(GenesisBaseDevice):
         self._poll = 0
         self._expert = False
         self._event_dir = self._resolve_event_dir(settings.get("magnet_event_dir"))
+        # Elena Long (2026-11-06): magnet field vs fringe field, Clear and Fit
+        self.fringe_cal = FringeCalibration(self._event_dir / "fringe_calibration")
         self._last_quench = False
+        # the NMR target's nucleus follows the target material (2026-11-06)
+        self.material_pv = settings.get("material_pv")
+        self.nucleus_by_material = dict(settings.get("nmr_nucleus") or NUCLEUS_BY_MATERIAL)
+        self._material = None
+        self._nucleus = None
+        self._next_material = 0.0
         self.sequencer = None
         self.permit = CryoPermit(self.permit_cfg)
         super().__init__(device_name, settings)
@@ -129,8 +148,15 @@ class Device(GenesisBaseDevice):
                                      DRVH=self.cfg.max_current - 0.001, initial_value=0.0,
                                      on_update=self._set_target_current)
         self._target = 0.0
+        self._echoes = {}                 # target PV -> the value we just wrote to it
+        self._refused_state = None        # the REFUSED text shown in STATE, if any
+        self._state_before_refusal = "IDLE"
+        self._target_field = 0.0          # the field the targets show (typed or derived)
         p["TARGET_FIELD"] = b.aOut("TARGET_FIELD", EGU="T", PREC=5, initial_value=0.0,
                                    on_update=self._set_target_field)
+        p["TARGET_NMR"] = b.aOut("TARGET_NMR", EGU="MHz", PREC=4, initial_value=0.0,
+                                 on_update=self._set_target_nmr)
+        p["TARGET_NUCLEUS"] = b.stringIn("TARGET_NUCLEUS", initial_value="NMR (MHz): set the material")
         p["EXPERT"] = b.boolOut("EXPERT", ZNAM="Normal", ONAM="Expert", initial_value=0,
                                 on_update=self._set_expert)
         # V4: the operator's bypass of the R24 check; never on at start-up
@@ -141,6 +167,19 @@ class Device(GenesisBaseDevice):
                               ("HEATER_OFF_CMD", self._cmd_heater_off),
                               ("MATCH", self._cmd_match), ("OUTAGE", self._cmd_outage)):
             p[name] = b.Action(name, on_update=handler)
+        # fringe-field calibration chart (fringe_cal.py): the points, the fitted
+        # line, and the fit B_magnet = slope x B_fringe + offset
+        for name, egu, length in (("CAL_FIELD", "T", CAL_MAX_POINTS), ("CAL_FRINGE", "G", CAL_MAX_POINTS),
+                                  ("CAL_LINE_FIELD", "T", 2), ("CAL_LINE_FRINGE", "G", 2)):
+            p[name] = b.WaveformIn(name, length=length, datatype=float, EGU=egu)
+        p["CAL_N"] = b.longIn("CAL_N")
+        p["CAL_SLOPE"] = b.aIn("CAL_SLOPE", EGU="T/G", PREC=8)
+        p["CAL_OFFSET"] = b.aIn("CAL_OFFSET", EGU="T", PREC=6)
+        p["CAL_RMS"] = b.aIn("CAL_RMS", EGU="T", PREC=6)
+        p["CAL_EQUATION"] = b.stringIn("CAL_EQUATION", initial_value="Press Fit for B from the fringe field")
+        p["CAL_CLEAR"] = b.Action("CAL_CLEAR", on_update=self._cal_clear)
+        p["CAL_FIT"] = b.Action("CAL_FIT", on_update=self._cal_fit)
+        self._publish_cal()
         p["FIELD_SLOPE"].set(self.field_slope)
         p["FIELD_OFFSET"].set(self.field_offset)
         p["STATE"].set("IDLE")
@@ -236,26 +275,183 @@ class Device(GenesisBaseDevice):
         if self._gate("OUTAGE"):
             asyncio.ensure_future(self.sequencer.outage())
 
-    def _set_target_current(self, amps):
-        """Elena Long (2026-11-04): whole 0.1 mA only, the supply's finest step
-        (extended resolution); a finer target is refused and put back."""
-        amps = float(amps)
-        if on_step(amps, SUPPLY_STEP_FINE_A):
-            self._target = amps
-            return
-        self.pvs["TARGET_CURRENT"].set(self._target, process=False)
-        self._event("refused", f"target {amps:.6g} A is finer than the supply's 0.1 mA step; "
-                    f"kept {self._target:.4f} A")
-        if self.sequencer is None or not self.sequencer.busy:
-            self.pvs["STATE"].set("REFUSED: target finer than 0.1 mA step")
+    # Elena Long (2026-11-06): typing either target fills in the other.  A
+    # set() without processing posts no monitor, so the screen never saw the
+    # converted value; these writes process, and the handler skips the echo.
+    def _show_target(self, name, value):
+        """Write the target PV ``name`` so the screens see it; its own handler
+        will see ``value`` come back and skip it (see _is_echo)."""
+        value = float(value)
+        if self.pvs[name].get() == value:
+            return                                   # unchanged: no update comes back
+        self._echoes[name] = value
+        self.pvs[name].set(value)
 
-    def _set_target_field(self, field_t):
+    def _is_echo(self, name, value):
+        return self._echoes.pop(name, None) == float(value)
+
+    def _field_of(self, amps):
+        return round(self.field_slope * float(amps) + self.field_offset, 8)
+
+    def _refuse_target(self, why, state):
+        self._event("refused", f"{why}; kept {self._target:.4f} A")
+        if self.sequencer is None or not self.sequencer.busy:
+            if self._refused_state is None:
+                self._state_before_refusal = self.pvs["STATE"].get()
+            self._refused_state = state[:39]
+            self.pvs["STATE"].set(self._refused_state)
+
+    def _target_accepted(self):
+        """A good target clears our REFUSED message (if nothing replaced it)."""
+        if self._refused_state is not None and self.pvs["STATE"].get() == self._refused_state:
+            self.pvs["STATE"].set(self._state_before_refusal)
+        self._refused_state = None
+
+    def _gamma(self):
+        """MHz/T of the target's NMR nucleus, or None until the material is known."""
+        return NMR_GAMMA_MHZ_PER_T.get(self._nucleus)
+
+    def _show_nmr(self, field_t):
+        g = self._gamma()
+        self._show_target("TARGET_NMR", round(g * float(field_t), 6) if g else 0.0)
+
+    def _current_for(self, field_t):
+        """The target current (A, 0.1 mA steps) for a field (T), or None out of range."""
         amps = (float(field_t) - self.field_offset) / self.field_slope
         if math.isfinite(amps) and 0.0 <= amps < self.cfg.max_current:
-            self._target = round(amps, 4)
-            self.pvs["TARGET_CURRENT"].set(self._target, process=False)
-        else:
-            self.pvs["TARGET_FIELD"].set_alarm(severity=alarm.MAJOR_ALARM, alarm=alarm.WRITE_ALARM)
+            return round(amps, 4)
+        return None
+
+    def _set_target_current(self, amps):
+        """Elena Long (2026-11-04): whole 0.1 mA only, the supply's finest step
+        (extended resolution); a finer target is refused and put back.  An
+        accepted target shows its field and NMR frequency (2026-11-06)."""
+        amps = float(amps)
+        if self._is_echo("TARGET_CURRENT", amps):
+            return
+        if on_step(amps, SUPPLY_STEP_FINE_A):
+            self._target = amps
+            self._target_field = self._field_of(amps)
+            self._show_target("TARGET_FIELD", self._target_field)
+            self._show_nmr(self._target_field)
+            self._target_accepted()
+            return
+        self._show_target("TARGET_CURRENT", self._target)
+        self._refuse_target(f"target {amps:.6g} A is finer than the supply's 0.1 mA step",
+                            "REFUSED: target finer than 0.1 mA step")
+
+    def _set_target_field(self, field_t):
+        """The field (T) by the field equation, to the nearest 0.1 mA step;
+        shown in TARGET_CURRENT and TARGET_NMR.  Out of range: refused and put back."""
+        if self._is_echo("TARGET_FIELD", field_t):
+            return
+        amps = self._current_for(field_t)
+        if amps is not None:
+            self._target, self._target_field = amps, float(field_t)
+            self._show_target("TARGET_CURRENT", amps)
+            self._show_nmr(self._target_field)
+            self._target_accepted()
+            return
+        self._show_target("TARGET_FIELD", self._target_field)
+        top = self._field_of(self.cfg.max_current)
+        self._refuse_target(f"target field {float(field_t):.6g} T is outside 0-{top:.3f} T",
+                            f"REFUSED: field outside 0-{top:.3f} T")
+
+    def _set_target_nmr(self, mhz):
+        """Elena Long (2026-11-06): the target as an NMR frequency (MHz) of the
+        target's nucleus -- the deuteron, or the proton for NH3 -- shown in
+        TARGET_FIELD (f / gamma) and TARGET_CURRENT.  Refused and put back
+        until the target material is set, or out of range."""
+        if self._is_echo("TARGET_NMR", mhz):
+            return
+        g = self._gamma()
+        if g is None:
+            self._show_nmr(self._target_field)
+            self._refuse_target(f"NMR target {float(mhz):.6g} MHz needs the target material",
+                                "REFUSED: set the target material first")
+            return
+        field_t = round(float(mhz) / g, 8)
+        amps = self._current_for(field_t)
+        if amps is not None:
+            self._target, self._target_field = amps, field_t
+            self._show_target("TARGET_CURRENT", amps)
+            self._show_target("TARGET_FIELD", field_t)
+            self._target_accepted()
+            return
+        self._show_nmr(self._target_field)
+        top = g * self._field_of(self.cfg.max_current)
+        self._refuse_target(f"NMR target {float(mhz):.6g} MHz is outside 0-{top:.2f} MHz "
+                            f"({self._nucleus})", f"REFUSED: NMR outside 0-{top:.2f} MHz")
+
+    def _set_material(self, name):
+        """The target material (Cryo Safety screen) picks the NMR nucleus."""
+        name = str(name)
+        if name == self._material:
+            return
+        self._material = name
+        nucleus = self.nucleus_by_material.get(name)
+        self._nucleus = nucleus if nucleus in NMR_GAMMA_MHZ_PER_T else None
+        self.pvs["TARGET_NUCLEUS"].set(f"or {self._nucleus} NMR (MHz)" if self._nucleus
+                                       else "NMR (MHz): set the material")
+        self._show_nmr(self._target_field)
+
+    async def _poll_material(self):
+        """Every ~2 s: the target material from the cryo IOCs (kept on a failed read)."""
+        if not self.material_pv or time.monotonic() < self._next_material:
+            return
+        self._next_material = time.monotonic() + 2.0
+        try:
+            import aioca
+            name = await aioca.caget(self.material_pv, datatype=str, timeout=1.0)
+        except Exception:  # noqa: BLE001 - the cryo IOC may be down
+            return
+        self._set_material(name)
+
+    # ------------------------------------------------------------ fringe chart
+    def _publish_cal(self):
+        fields, fringes = self.fringe_cal.arrays()
+        self.pvs["CAL_FIELD"].set(np.asarray(fields, dtype=float))
+        self.pvs["CAL_FRINGE"].set(np.asarray(fringes, dtype=float))
+        self.pvs["CAL_N"].set(len(fields))
+        line_b, line_g = self.fringe_cal.line()
+        self.pvs["CAL_LINE_FIELD"].set(np.asarray(line_b, dtype=float))
+        self.pvs["CAL_LINE_FRINGE"].set(np.asarray(line_g, dtype=float))
+
+    def _sample_fringe(self, field_t, st):
+        """Add (field, fringe) to the chart when due; the fringe reading must
+        be fresh (the permit fetch: every poll, and every step while ramping)."""
+        if st.fault:
+            return
+        age = self.permit.clock() - self.permit.fetched_at
+        if not (math.isfinite(age) and age <= 3.0):
+            return
+        fringe_g = self.permit.value(self.permit_cfg.fringe_pv) * 1.0e4
+        if self.fringe_cal.offer(field_t, fringe_g, time.monotonic()):
+            self._publish_cal()
+
+    def _cal_clear(self, _value):
+        self.fringe_cal.clear()
+        for name in ("CAL_SLOPE", "CAL_OFFSET", "CAL_RMS"):
+            self.pvs[name].set(math.nan)
+        self.pvs["CAL_EQUATION"].set("Cleared: new points, new file")
+        self._publish_cal()
+        self._event("fringe", "fringe calibration chart cleared (earlier points kept on file)")
+
+    def _cal_fit(self, _value):
+        try:
+            slope, offset, rms, n = self.fringe_cal.fit()
+        except ValueError as exc:
+            self.pvs["CAL_EQUATION"].set(f"Fit: {exc}"[:39])
+            return
+        self.pvs["CAL_SLOPE"].set(slope)
+        self.pvs["CAL_OFFSET"].set(offset)
+        self.pvs["CAL_RMS"].set(rms)
+        text = self.fringe_cal.equation(slope, offset)
+        self.pvs["CAL_EQUATION"].set(text[:39])
+        self._publish_cal()
+        self._event("fringe", f"fit {text} (rms {rms:.2g} T, {n} points)",
+                    slope_t_per_g=slope, offset_t=offset, rms_t=rms, n=n,
+                    file=str(self.fringe_cal.file or ""))
 
     def _set_ignore_inductance(self, value):
         on = bool(int(value))
@@ -357,6 +553,7 @@ class Device(GenesisBaseDevice):
         return out
 
     async def do_reads(self):
+        await self._poll_material()
         if self.t is None:
             self._set_comm(False, "Supply disconnected")
             self.reconnect()
@@ -422,6 +619,7 @@ class Device(GenesisBaseDevice):
         self._publish_cryo()
         self.pvs["SYSTEM_CHECK_STATE"].set(self._system_check(st)[:39])
         self._publish_resolution()
+        self._sample_fringe(field, st)
         self._log_csv(values, st, field)
         self.pvs["LAST_OK"].set(time.time())
         self._set_comm(True)

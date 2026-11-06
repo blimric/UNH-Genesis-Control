@@ -11,8 +11,8 @@ general:
   prefix: UNH:GEN:MAG
   log_dir: logs
   # the cryogenics IOCs the permit reads: LS224 magnet (5117), IONIVAC (5114),
-  # magnet LHe level (5127)
-  epics_addr_list: 127.0.0.1:5117 127.0.0.1:5114 127.0.0.1:5127 127.0.0.1:5115
+  # magnet LHe level (5127); the target material for the NMR target (5120)
+  epics_addr_list: 127.0.0.1:5117 127.0.0.1:5114 127.0.0.1:5127 127.0.0.1:5115 127.0.0.1:5120
   delay: 1.0
 
 ips120:
@@ -28,6 +28,10 @@ ips120:
   write_enabled: false
   # operations log (JSONL, one file a day); null: <archive root>/events/magnet
   magnet_event_dir: null
+  # Elena Long (2026-11-06): the NMR target (TARGET_NMR, MHz) uses the
+  # nucleus of the target material chosen on the Cryo Safety screen
+  material_pv: UNH:GEN:CRYO:STATE:material
+  nmr_nucleus: {ND3: deuteron, d-butanol: deuteron, d-propanediol: deuteron, NH3: proton}
 
   # ---- limits and rates (AMI specification; Ells 2026-10-22) -------------
   max_current: 65.0                 # A; AMI rated 67.9 A for 70 kG
@@ -142,6 +146,13 @@ ips120:
     VERSION: {DESC: Supply version string}
     TARGET_CURRENT: {DESC: Requested target current, EGU: A}
     TARGET_FIELD: {DESC: Requested target field, EGU: T}
+    TARGET_NMR: {DESC: Requested target NMR frequency, EGU: MHz}
+    TARGET_NUCLEUS: {DESC: Nucleus of the NMR target}
+    CAL_N: {DESC: Fringe calibration points}
+    CAL_SLOPE: {DESC: B_magnet per B_fringe (fit), EGU: T/G}
+    CAL_OFFSET: {DESC: B_magnet at zero fringe (fit), EGU: T}
+    CAL_RMS: {DESC: Fringe fit rms residual, EGU: T}
+    CAL_EQUATION: {DESC: B_magnet from B_fringe (fit)}
     EXPERT: {DESC: Expert mode (LHe floor 16 in)}
     RESOLUTION: {DESC: Supply current step in use}
     COMM: {DESC: Supply communication}

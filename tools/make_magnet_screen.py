@@ -150,13 +150,22 @@ def settings_card():
 def ramp_card():
     x, y = 456, 52
     w = [pan.card("Ramp", x, y, 460, 300, "Ramp")]
-    w.append(pan.label("Target current (A)", 466, 84, 200, 16, 9, False, pan.MUTED))
-    w.append(entry(f"{MAG}:TARGET_CURRENT", 466, 100, 200, name="TargetCurrent",
+    # Elena Long (2026-11-06): current, field or NMR frequency; typing any one
+    # fills in the other two (the IOC converts)
+    w.append(pan.label("Target current (A)", 466, 84, 142, 16, 9, False, pan.MUTED))
+    w.append(entry(f"{MAG}:TARGET_CURRENT", 466, 100, 142, name="TargetCurrent",
                    tooltip="0 to just under the software limit, to 0.1 mA (the IPS120's finest "
                            "step); a 0.1 mA digit switches the supply to 0.1 mA steps"))
-    w.append(pan.label("or target field (T)", 680, 84, 200, 16, 9, False, pan.MUTED))
-    w.append(entry(f"{MAG}:TARGET_FIELD", 680, 100, 200, name="TargetField",
+    w.append(pan.label("or target field (T)", 612, 84, 142, 16, 9, False, pan.MUTED))
+    w.append(entry(f"{MAG}:TARGET_FIELD", 612, 100, 142, name="TargetField",
                    tooltip="sets the target current by the field equation"))
+    nucleus = pan.update(f"{MAG}:TARGET_NUCLEUS", 758, 84, 148, 16, 9, False, fg=pan.MUTED,
+                         name="TargetNucleus")
+    w.append(nucleus.replace("</widget>", "<transparent>true</transparent></widget>"))
+    w.append(entry(f"{MAG}:TARGET_NMR", 758, 100, 148, name="TargetNMR",
+                   tooltip="the target's NMR frequency: the deuteron, or the proton for NH3, "
+                           "as the target material on the Cryo Safety screen; sets the field "
+                           "and the current"))
     # Elena Long (2026-11-04): RAMP no longer asks (during field trims the
     # pop-up came up on every press); the IOC's checks, the 3 A/min cap and
     # HOLD are unchanged, and a change too small to send is reported in State
@@ -240,12 +249,57 @@ def outage_and_trend():
                              "20 s). Continue?", bg=RED, fg=pan.WHITE, size=15, bold=True, name="OutageButton"))
     w.append(pan.label("For an outage that is coming or on backup power: once the power is gone "
                        "the IOC is gone too.", 934, 160, 448, 36, 9, False, pan.MUTED, wrap=True))
-    w.append(pan.card("Field trend", x, 208, 468, 644, "Trend"))
+    w.append(pan.card("Field trend and fringe calibration", x, 208, 468, 644, "Trend"))
     w.append(pan.history_plot("MagnetField", "Magnet field (T)", 932, 238, 452, 300, "MAGNET",
                               [("Field", "FIELD", pan.NAVY, 0)], [("T", False, 0, 7)], TREND_SPAN_MIN))
-    w.append(pan.history_plot("SupplyCurrent", "Supply current (A)", 932, 544, 452, 300,
-                              "MAGNET", [("Current", "CURRENT", (230, 110, 0), 0)],
-                              [("A", False, 0, 65)], TREND_SPAN_MIN))
+    w.extend(fringe_calibration(932, 544))
+    return w
+
+
+def fringe_plot(x, y, w, h):
+    """Magnet field (x) against the fringe gaussmeter (y): the chart's points
+    and, after Fit, the fitted line (magnet_ioc/fringe_cal.py)."""
+    small = '<font family="Liberation Sans" style="REGULAR" size="9.0"/>'
+    fonts = f"<title_font>{small}</title_font><scale_font>{small}</scale_font>"
+
+    def axis(tag, title):
+        return (f"<{tag}><title>{escape(title)}</title><autoscale>true</autoscale>"
+                f"<log_scale>false</log_scale><minimum>0.0</minimum><maximum>1.0</maximum>"
+                f"<show_grid>true</show_grid>{fonts}<visible>true</visible></{tag}>")
+
+    def trace(name, xs, ys, rgb, kind, point, size):
+        return (f"<trace><name>{name}</name><x_pv>ca://{MAG}:{xs}</x_pv><y_pv>ca://{MAG}:{ys}</y_pv>"
+                f"<axis>0</axis><trace_type>{kind}</trace_type><color>{pan.col(rgb)}</color>"
+                f"<line_width>2</line_width><point_type>{point}</point_type>"
+                f"<point_size>{size}</point_size><visible>true</visible></trace>")
+    traces = (trace("Points", "CAL_FIELD", "CAL_FRINGE", pan.NAVY, 0, 2, 4)
+              + trace("Fit", "CAL_LINE_FIELD", "CAL_LINE_FRINGE", (230, 110, 0), 1, 0, 1))
+    return (f'<widget type="xyplot" version="3.0.0"><name>FringeCalibrationPlot</name>'
+            f"<x>{x}</x><y>{y}</y><width>{w}</width><height>{h}</height>"
+            f"<title>Fringe field vs magnet field</title>"
+            f'<title_font><font family="Liberation Sans" style="BOLD" size="10.0"/></title_font>'
+            f"<show_toolbar>true</show_toolbar><show_legend>false</show_legend>"
+            f"{axis('x_axis', 'Magnet field (T)')}<y_axes>{axis('y_axis', 'Fringe field (G)')}</y_axes>"
+            f"<traces>{traces}</traces></widget>")
+
+
+def fringe_calibration(x, y):
+    """Elena Long (2026-11-06, Ells): in place of the supply-current trend, the
+    magnet field against the fringe field, with Clear chart and Fit (a line
+    for B_magnet from B_fringe)."""
+    w = [fringe_plot(x, y, 452, 236)]
+    w.append(command("Clear chart", f"{MAG}:CAL_CLEAR", x, y + 242, 104, 28, name="CalClearButton",
+                     confirm="Clear the fringe calibration chart?  Its points stay saved in the "
+                             "magnet event folder; new points start a new file."))
+    w.append(command("Fit", f"{MAG}:CAL_FIT", x + 110, y + 242, 70, 28, bg=GREEN_LIGHT, bold=True,
+                     name="CalFitButton"))
+    w.append(pan.update(f"{MAG}:CAL_EQUATION", x + 186, y + 242, 266, 28, 10, True, name="CalEquation"))
+    w.append(pan.label("Points", x, y + 276, 44, 22, 9, False, pan.MUTED))
+    w.append(pan.update(f"{MAG}:CAL_N", x + 44, y + 276, 56, 22, 10, False, name="CalN"))
+    w.append(pan.label("rms", x + 110, y + 276, 30, 22, 9, False, pan.MUTED))
+    w.append(pan.update(f"{MAG}:CAL_RMS", x + 140, y + 276, 110, 22, 10, False, prec=6, name="CalRms"))
+    w.append(pan.label("Bf: fringe field in G.  A point every 2 mT of field change (or 5 min).",
+                       x + 256, y + 272, 196, 30, 8, False, pan.MUTED, wrap=True))
     return w
 
 

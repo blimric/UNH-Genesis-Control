@@ -15,11 +15,11 @@ def test_complete_configured_registry():
         "Cryo": 168,
         "ssRF": 97,
         "Microwave": 124,           # + 7 Expert-mode supervisor records
-        "Magnet": 60,           # magnet_ioc (IPS120-10, V4 port; + RESOLUTION)
+        "Magnet": 67,           # magnet_ioc (+ RESOLUTION; + NMR target, fringe fit 2026-11-06)
     }
 
-    assert len(registry) == 449
-    assert report["total"] == 449
+    assert len(registry) == 456
+    assert report["total"] == 456
 
     assert all(
         data["transport"] == "unverified"
@@ -89,7 +89,7 @@ def test_genuinely_undefined_archive_reference_reported(monkeypatch):
 
     registry, report = module.build_registry()
 
-    assert len(registry) == 449
+    assert len(registry) == 456
     assert report["invalid_archive_references"] == [{
         "ioc": "mw_supervisor",
         "record": "UNVERIFIED_ARCHIVE_RECORD",

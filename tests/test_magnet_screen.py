@@ -71,10 +71,11 @@ def test_switch_commands_ask_first_and_ramp_and_hold_never_do():
         for a in w.iter("action"):
             if a.get("type") == "write_pv":
                 buttons[a.findtext("pv_name").removeprefix("ca://UNH:GEN:MAG:")] = w
-    assert set(buttons) == {"RAMP", "HOLD", "HEATER_ON_CMD", "HEATER_OFF_CMD", "MATCH", "OUTAGE"}
+    assert set(buttons) == {"RAMP", "HOLD", "HEATER_ON_CMD", "HEATER_OFF_CMD", "MATCH", "OUTAGE",
+                            "CAL_CLEAR", "CAL_FIT"}         # + the fringe chart (2026-11-06)
     for name, w in buttons.items():
         asks = w.findtext("show_confirm_dialog") == "true"
-        assert asks == (name not in ("RAMP", "HOLD")), name
+        assert asks == (name not in ("RAMP", "HOLD", "CAL_FIT")), name
     # the outage button is the big red one (review issue 19)
     out = buttons["OUTAGE"]
     assert int(out.findtext("width")) >= 400 and int(out.findtext("height")) >= 60
@@ -89,3 +90,21 @@ def test_panopticon_card_is_live_and_links_the_magnet_tab():
     for f in ET.parse(BOB).getroot().iter("file"):
         assert (BOB.parent / f.text).exists(), f.text
     assert phoebus.LIVE_SCREENS["magnet"] == "genesis_magnet.bob"
+
+
+def test_three_linked_targets_and_the_fringe_chart():
+    # Elena Long (2026-11-06): current, field and NMR frequency on one row; the
+    # fringe field against the magnet field in place of the supply-current trend
+    root = ET.parse(BOB).getroot()
+    widgets = {w.findtext("name"): w for w in root.iter("widget")}
+    row = [widgets[n] for n in ("TargetCurrent", "TargetField", "TargetNMR")]
+    assert len({w.findtext("y") for w in row}) == 1
+    assert row[2].findtext("pv_name") == "ca://UNH:GEN:MAG:TARGET_NMR"
+    assert widgets["TargetNucleus"].findtext("pv_name") == "ca://UNH:GEN:MAG:TARGET_NUCLEUS"
+    assert "Trend_SupplyCurrent" not in widgets
+    plot = widgets["FringeCalibrationPlot"]
+    assert plot.findtext("x_axis/title") == "Magnet field (T)"
+    assert plot.findtext("y_axes/y_axis/title") == "Fringe field (G)"
+    xs = [t.findtext("x_pv") for t in plot.iter("trace")]
+    assert xs == ["ca://UNH:GEN:MAG:CAL_FIELD", "ca://UNH:GEN:MAG:CAL_LINE_FIELD"]
+    assert widgets["CalEquation"].findtext("pv_name") == "ca://UNH:GEN:MAG:CAL_EQUATION"
