@@ -52,7 +52,8 @@ class MicrowaveLeg:
         self.ca = ca
         self.model = getattr(engine.provider, "model", None)
         self._values = {"rf": 0, "valid": 0, "freq": math.nan, "power": math.nan,
-                        "uca": math.nan, "uca_out": math.nan}
+                        "uca": math.nan, "uca_out": math.nan,
+                        "magic_plus": math.nan, "magic_minus": math.nan, "magic_field": math.nan}
         self._subs = []
         self._last_on = None
         self._last_uca = math.nan
@@ -67,7 +68,10 @@ class MicrowaveLeg:
         from aioca import camonitor
         pvs = {f"{SRC}:MW_RF_RBV": "rf", f"{SRC}:MW_RF_VALID": "valid",
                f"{SRC}:MW_OutFI": "freq", f"{SRC}:MW_PWRI": "power",
-               f"{PS}:VMEAS": "uca", f"{PS}:OUTPUT_RBV": "uca_out"}
+               f"{PS}:VMEAS": "uca", f"{PS}:OUTPUT_RBV": "uca_out",
+               # the Magic +/- the operator sees (the live model's DNP lobes sit there)
+               f"{SUP}:MagicPlusGHz": "magic_plus", f"{SUP}:MagicMinusGHz": "magic_minus",
+               f"{SUP}:MagicFieldT": "magic_field"}
         names = list(pvs)
 
         def cb(value, index):
@@ -97,6 +101,9 @@ class MicrowaveLeg:
         uca = self.uca_V()
         if hasattr(self.engine.provider, "observe_mw"):
             self.engine.provider.observe_mw(on, self._values["freq"], self._values["power"], uca)
+        if hasattr(self.engine.provider, "observe_magic"):
+            v = self._values
+            self.engine.provider.observe_magic(v["magic_plus"], v["magic_minus"], v["magic_field"])
         if on != self._last_on:
             self._last_on = on
             self.engine.events.write(self.engine.clock.now(), "microwave",

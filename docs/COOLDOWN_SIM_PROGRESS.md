@@ -5,9 +5,9 @@ what is assumed, and what is next. The newest entries are at the top of each
 section. The how-to guide is in `docs/COOLDOWN_SIM.md`. Questions waiting for
 lab answers are in `docs/COOLDOWN_SIM_OPEN_QUESTIONS.md`.
 
-* **Where the work lives:** branch `dev-sim` in the worktree
-  `GitHub/UNH-Genesis-Control-dev-sim`, created from `elong`. Nothing is pushed.
-  Merging into `elong` is Ells's call.
+* **Where the work lives:** since 2026-11-06 the sim is merged into `elong`
+  and work continues there (`GitHub/UNH-Genesis-Control`). Branch `dev-sim`
+  (worktree `GitHub/UNH-Genesis-Control-dev-sim`) is kept, level with `elong`.
 * **Ground rule:** the build is purely additive. No existing Genesis file is
   changed. `git diff --name-status elong...dev-sim` shows only added (`A`)
   files.
@@ -43,11 +43,34 @@ lab answers are in `docs/COOLDOWN_SIM_OPEN_QUESTIONS.md`.
    whether Q lags Q_B(P) on a spin-up from zero.
 2. Try an interactive rehearsal (guide section 2) with the real screens in
    Phoebus.
-3. Decide whether to push `dev-sim` and merge it into `elong`.
+3. ~~Decide whether to push `dev-sim` and merge it into `elong`.~~ Merged 2026-11-06.
 4. Schedule the live-code fixes listed under *Findings* below. Each is a
    separate change to the live system, deliberately not made here.
 
 ## Log
+
+### 2026-11-06: two-peak polarization, linked magnet targets, fringe chart; merged into elong
+
+* Live DNP (dev-sim): Magic+ and Magic- are two Gaussians in microwave
+  frequency, at the Magic factors times the field (sigma 0.005 GHz/T x B).
+  Pumping at Magic+ drives P to +40 %, at Magic- to -40 %; off-peak the
+  reachable |P| falls along the Gaussian.  Pump rate from the summed lobes
+  (tau_up 2450 s).  The Magic factors are read from the supervisor's
+  MagicPlusGHz / MagicMinusGHz / MagicFieldT, else the spin-1 table's ratio.
+* Magnet tab (elong): current, field and NMR-frequency targets on one row,
+  each filling in the other two (the old screens never updated: values were
+  set without a monitor).  The NMR box uses the deuteron or proton from the
+  target material; out-of-range or too-fine entries are put back with a
+  REFUSED message that clears on the next good entry.
+* Magnet tab (elong): the supply-current trend is replaced by magnet field
+  (T) against fringe field (G), with Clear chart and Fit (B = slope x Bf +
+  offset).  Points go to `fringe_calibration_*.csv` (one file per chart,
+  never deleted, reloaded on restart).
+* Ells's call: `dev-sim` merged into `elong`; work continues on `elong`.
+* Found, not fixed (lab IOCs; asked Ells): purple material/dopant on a fresh
+  start (no saved state, records undefined), and 18 microwave readbacks
+  (UCA supply, source, robot) in false HIHI because the shared base device
+  sets alarm severities with every limit at 0.
 
 ### 2026-11-04: the live cool-down from warm; quick start; magnet and microwave fixes
 

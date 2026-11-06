@@ -149,6 +149,10 @@ class Inputs:
     nmr_center_MHz: float = 0.0
     nmr_span_MHz: float = 0.0
     baseline_requests: int = 0
+    #: Magic +/- factors (GHz/T) shown on the Microwave tab for the target
+    #: material and dopant the operator chose; NaN until chosen
+    magic_plus_GHz_per_T: float = float("nan")
+    magic_minus_GHz_per_T: float = float("nan")
 
 
 @dataclass
@@ -193,13 +197,22 @@ class TargetModel:
         #: live cool-down: what the microwaves add to the cup thermometers at
         #: full drive (K; Ells 2026-11-04: T1 and T3 rise ~0.5-1 K with RF on)
         self.cup_mw_K: dict = {}
+        #: live cool-down DNP (two Gaussians at Magic +/-), or None: see live_p_inf
+        self.live_dnp: dict | None = None
         self.state = self._initial(t0)
 
     # ----------------------------------------------------------- history
     def magic_GHz(self, sign: str, t: float) -> float:
         """The DAQ-style 'magic' frequency at t: '+' best P-up, '-' best P-down."""
         B = self.field_T(t)
-        return spin1.magic_ratio(sign, self.material(t)) * B if B > 0.5 else float("nan")
+        return self.magic_factor(sign, t) * B if B > 0.5 else float("nan")
+
+    def magic_factor(self, sign: str, t: float) -> float:
+        """Magic +/- (GHz/T): the operator's material and dopant as the Microwave
+        tab shows them, else the material table's for this cool-down."""
+        seen = (self.inputs.magic_plus_GHz_per_T if sign.startswith("+")
+                else self.inputs.magic_minus_GHz_per_T)
+        return seen if math.isfinite(seen) and seen > 0 else spin1.magic_ratio(sign, self.material(t))
 
     def material(self, t: float) -> str:
         """Target material at t: the replayed cool-down's schedule, else the default."""
@@ -374,6 +387,26 @@ class TargetModel:
         return dnp["P_max"] * ph.dnp_lobe(delta, dnp["lobe_width_GHz"],
                                           dnp.get("neg_scale", 1.0), dnp.get("neg_side", 1))
 
+    def live_lobes(self, f_GHz: float, t: float) -> tuple[float, float]:
+        """(G+, G-): Gaussians of unit height at Magic + and Magic - (live cool-down)."""
+        B = self.field_T(t)
+        if B <= 0.5 or not math.isfinite(f_GHz) or self.live_dnp is None:
+            return 0.0, 0.0
+        sigma = self.live_dnp["sigma_GHz_per_T"] * B
+        gp, gm = (math.exp(-0.5 * ((f_GHz - self.magic_factor(s, t) * B) / sigma) ** 2)
+                  for s in "+-")
+        return gp, gm
+
+    def live_p_inf(self, f_GHz: float, t: float, pump: float = 1.0) -> float:
+        """Live cool-down: the polarization the microwaves hold at f (fraction).
+
+        Elena Long (2026-11-05, Ells's spec): two Gaussians, one up at Magic +
+        and one down at Magic -, each of height P_max (40 %), so the right
+        frequency finds +-P_max and a mistuned one less.  Less power (UCA)
+        scales it down."""
+        gp, gm = self.live_lobes(f_GHz, t)
+        return self.live_dnp["P_max"] * (gp - gm) * min(max(pump, 0.0), 1.0)
+
     # ---------------------------------------------------------- advance
     def advance(self, t: float) -> State:
         with self._lock:
@@ -420,8 +453,19 @@ class TargetModel:
         if B <= 0.5:
             rate_off = max(rate_off, 1.0 / LOW_FIELD_T1_S)
         pump = d_op / freq_factor(f_op)                 # drive without the frequency response
-        rates = self.spin1_engine(tm) if (B > 0.5 and s.q < 0.5) else None
-        if rates is not None:
+        rates = self.spin1_engine(tm) if (B > 0.5 and s.q < 0.5 and self.live_dnp is None) else None
+        if self.live_dnp is not None:
+            # live cool-down: P relaxes to the two-Gaussian value, pumped at a rate
+            # that follows the same Gaussians (tau_up on a lobe, T1 between them)
+            s.Pe = float("nan")
+            if pump > 0.05 and B > 0.5 and math.isfinite(f_op) and s.q < 0.5:
+                gp, gm = self.live_lobes(f_op, tm)
+                k = min(pump, 1.0) * (gp + gm) / self.live_dnp["tau_up_s"] + rate_off
+                s.P = relax(s.P, self.live_p_inf(f_op, tm, pump), 1.0 / k)
+            else:
+                s.P = relax(s.P, ph.te_polarization(B, T_lat)[0] if B > 0.5 else 0.0, 1.0 / rate_off)
+            s.Q = relax(s.Q, ph.q_boltzmann(s.P), dnp["Q_heal_tau_s"])
+        elif rates is not None:
             # spin-1 rate equations: P, Q and the electron from the fitted rates.  Their
             # thermal targets use the bath (vapor-pressure) temperature, as in the fits;
             # the cup thermometer reads warmer under microwaves
