@@ -162,6 +162,13 @@ top of it unchanged.
   the Magnet tab works (writes enabled in this session's profile only); its
   field moves the NMR line and the Magic frequencies.  It quenches out of its
   helium or on QUENCH.
+* **Polarization:** two Gaussians, one up at Magic + and one down at
+  Magic −, each 40 % high (σ = 0.005 GHz/T, ~25 MHz at 5 T, ASSUMED).  The
+  right frequency at full power builds to ±40 % (τ ≈ 41 min); a mistuned
+  one reaches less, and between the peaks P only relaxes (T1).  The peaks
+  sit on the Magic +/− the Microwave tab shows for the chosen material and
+  dopant (the material table's values until one is chosen).  The past
+  cool-down replay keeps its fitted DNP.
 * **Time warp:** the slider clicks at pause and 1x; the automatic stages
   warp the clock (about a minute each) and give your speed back; the speed
   drops to 1x on new major cryo alarms, interlock trips and quenches

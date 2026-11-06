@@ -344,3 +344,55 @@ def test_the_warm_start_is_inside_every_thermometer_calibration():
         for slot, curve in _ls224_inverse(cfg).items():
             lo, hi = curve.t_range
             assert lo <= bg.value_at(slots[slot], T0) <= hi, slots[slot]
+
+
+# ------------------------------------------------------------ live DNP lobes
+def _cold_provider_at_5T():
+    from cooldown_sim import channel_map
+    from cooldown_sim.clock import SimClock
+    from cooldown_sim.emulators.ips120 import IPS120
+    from cooldown_sim.model.provider import ModelProvider
+    bg = LiveBackground(T0)
+    bg.act("start_cooldown")
+    t = run_until(bg, "cold", T0)
+    clock = SimClock(t, 1.0, running=False)
+    prov = ModelProvider(bg, channel_map.load(), clock, t0=t)
+    emu = IPS120(initial_current_a=48.666, clock=clock.now)
+
+    class Host:
+        hosted = {"ips120": type("H", (), {"emulator": emu})()}
+    prov.host = Host()
+    return prov, t
+
+
+def test_magic_plus_and_minus_hold_plus_and_minus_40_percent():
+    # Ells (2026-11-05): a Gaussian up at Magic + and one down at Magic -, both
+    # |P_max| = 40 %; a mistuned frequency reaches less
+    prov, t = _cold_provider_at_5T()
+    m = prov.model
+    prov.observe_magic(28.0236 * 5.0, 28.0438 * 5.0, 5.0)        # irradiated d-butanol
+    plus, minus = m.magic_GHz("+", t), m.magic_GHz("-", t)
+    assert plus == pytest.approx(28.0236 * m.field_T(t)) and minus > plus
+    assert m.live_p_inf(plus, t) == pytest.approx(0.40, abs=1e-3)
+    assert m.live_p_inf(minus, t) == pytest.approx(-0.40, abs=1e-3)
+    sigma = 0.005 * m.field_T(t)
+    assert m.live_p_inf(plus - sigma, t) == pytest.approx(0.40 * math.exp(-0.5), abs=2e-3)
+    assert m.live_p_inf(plus - 0.2, t) == pytest.approx(0.0, abs=1e-3)
+    assert m.live_p_inf(minus, t, pump=0.5) == pytest.approx(-0.20, abs=1e-3)
+    # no material chosen (Magic shows 0): the material table's Magic +/- apply
+    prov.observe_magic(0.0, 0.0, 5.0)
+    from cooldown_sim.model import spin1
+    assert m.magic_GHz("-", t) == pytest.approx(spin1.magic_ratio("-") * m.field_T(t))
+
+
+def test_microwaves_at_magic_minus_pump_p_negative():
+    prov, t = _cold_provider_at_5T()
+    m = prov.model
+    prov.observe_magic(28.0236 * 5.0, 28.0438 * 5.0, 5.0)
+    m.inputs.mw_mode, m.inputs.mw_on, m.inputs.mw_uca_V = "operator", True, 0.0
+    m.inputs.mw_freq_GHz = m.magic_GHz("-", t)
+    m.advance(t + 4 * 3600.0)
+    assert -0.40 <= m.state.P < -0.30                           # spinning down, toward -40 %
+    m.inputs.mw_freq_GHz = m.magic_GHz("+", t)
+    m.advance(t + 16 * 3600.0)
+    assert 0.38 < m.state.P <= 0.40                             # and back up to +40 %

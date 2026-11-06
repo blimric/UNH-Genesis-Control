@@ -20,6 +20,11 @@ THERMO_INSTRUMENTS = ("ls224_fridge", "ls224_magnet")
 #: live cool-down: microwave rise of the cup thermometers at full drive (K;
 #: Ells 2026-11-04, "about 0.5 to 1 K")
 LIVE_CUP_MW_K = {"T1": 0.8, "T3": 0.6}
+#: live cool-down DNP (Ells 2026-11-05): a Gaussian up at Magic + and one down
+#: at Magic -, both |P_max| = 40 %.  Width ASSUMED: sigma 0.005 GHz/T (~25 MHz
+#: at 5 T), about the measured irradiated d-butanol P-up peak (FWHM ~0.011
+#: GHz/T, spin1_materials.yaml).  tau_up as the model's default DNP.
+LIVE_DNP = {"P_max": 0.40, "sigma_GHz_per_T": 0.005, "tau_up_s": 2450.0}
 #: Roots-line flowmeter IOC -> side
 ROOTS_FLOWMETERS = {"flowmeter_left": "L", "flowmeter_pi": "R"}
 
@@ -49,6 +54,7 @@ class ModelProvider(ReplayProvider):
             self.model.field_source = self.magnet_field_T
             self.background.field_fn = self.magnet_field_T
             self.model.cup_mw_K = dict(LIVE_CUP_MW_K)
+            self.model.live_dnp = dict(LIVE_DNP)
 
     def recorded(self, instrument: str, channel: str, t: float) -> float:
         base = super().recorded(instrument, channel, t)
@@ -162,6 +168,16 @@ class ModelProvider(ReplayProvider):
         if math.isfinite(uca_V):
             inp.mw_uca_V = float(uca_V)
         return changed
+
+    def observe_magic(self, plus_GHz: float, minus_GHz: float, field_T: float) -> None:
+        """The Microwave tab's Magic +/- (GHz) at its field (T): their factors
+        place the model's DNP lobes.  0 (no material or dopant chosen) clears them."""
+        inp = self.model.inputs
+        self.model.advance(self.clock.now())
+        ok = (all(math.isfinite(v) and v > 0 for v in (plus_GHz, minus_GHz))
+              and math.isfinite(field_T) and field_T > 0.5)
+        inp.magic_plus_GHz_per_T = plus_GHz / field_T if ok else float("nan")
+        inp.magic_minus_GHz_per_T = minus_GHz / field_T if ok else float("nan")
 
     def _show_coldboard(self, watts: float) -> None:
         """Make the emulated coldboard supply show the heat being applied (as if
