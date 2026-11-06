@@ -96,7 +96,11 @@ class Device:
         p["OutputFrequencyRBV"] = builder.aIn(prefix + "OutputFrequencyRBV", EGU="GHz", PREC=6)
         p["CentralFrequency"] = builder.aOut(prefix + "CentralFrequency", EGU="GHz", PREC=6)
         names = [item["name"] for item in self.dopants] or ["UNCONFIGURED"]
-        p["Dopant"] = builder.mbbOut(prefix + "Dopant", *names)
+        # Elena Long (2026-11-06): purple (undefined) only until a dopant is
+        # chosen here or followed from the cryo selection; pythonSoftIOC would
+        # otherwise keep the start-up alarm through every later write
+        p["Dopant"] = builder.mbbOut(prefix + "Dopant", *names,
+                                     on_update=lambda _v: self._dopant_chosen())
         p["MagicPlus"] = builder.Action(prefix + "MagicPlus", on_update=self._magic_plus)
         p["MagicMinus"] = builder.Action(prefix + "MagicMinus", on_update=self._magic_minus)
         p["MagicPlusGHz"] = builder.aIn(prefix + "MagicPlusGHz", EGU="GHz", PREC=4)
@@ -449,15 +453,24 @@ class Device:
             return
         self._next_dopant_check = time.monotonic() + 2.0
         try:
-            value = await aioca.caget(self.follow_dopant_pv, datatype=str, timeout=1.0)
+            value = await aioca.caget(self.follow_dopant_pv, datatype=str,
+                                      format=aioca.FORMAT_TIME, timeout=1.0)
         except Exception:  # noqa: BLE001 - the cryo IOC may be down; keep the current choice
             return
+        if getattr(value, "severity", alarm.NO_ALARM) >= alarm.INVALID_ALARM:
+            return                                  # not chosen there yet: keep ours
+        value = str(value)
         if value == self._followed_dopant:
             return
         self._followed_dopant = value
         index = dopant_index([d["name"] for d in self.dopants], value)
-        if index is not None and index != self.pvs["Dopant"].get():
-            self.pvs["Dopant"].set(index)
+        if index is not None:
+            if index != self.pvs["Dopant"].get():
+                self.pvs["Dopant"].set(index)
+            self._dopant_chosen()
+
+    def _dopant_chosen(self):
+        self.pvs["Dopant"].set_alarm(alarm.NO_ALARM, alarm.NO_ALARM)
 
     async def _magic_display(self):
         """Magic +/- at the present field, for display (every ~2 s): factor

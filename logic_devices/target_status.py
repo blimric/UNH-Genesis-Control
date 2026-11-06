@@ -121,7 +121,7 @@ class Device:
         # the target's dopant: an operator selection, saved like the material
         # but never part of a state page (no push)
         self.pvs["dopant"] = builder.mbbOut("dopant", *self.dopant_names,
-                                            on_update=lambda _v: self._remember())
+                                            on_update=self._dopant_update)
         self.pvs["auto"] = builder.boolOut("auto", ZNAM="Manual", ONAM="Auto")
         self.pvs["production"] = builder.mbbIn("production", *PRODUCTION)
         self.pvs["conditions"] = builder.boolIn("conditions", ZNAM="Unmet", ONAM="Met")
@@ -129,6 +129,19 @@ class Device:
         self.pvs["state_applied"] = builder.stringIn("state_applied", initial_value="never")
 
     # -------------------------------------------------------------- helpers
+    def _chosen(self, key):
+        """Clear the start-up 'undefined' alarm once `key` holds a real choice.
+
+        Elena Long (2026-11-06): pythonSoftIOC keeps an Out record's start-up
+        INVALID/UDF severity and re-applies it on every later write, so a
+        selection made on the screen, or restored at start, stayed purple for
+        good.  Now purple means only "never chosen"."""
+        self.pvs[key].set_alarm(alarm.NO_ALARM, alarm.NO_ALARM)
+
+    def _dopant_update(self, _value):
+        self._chosen("dopant")
+        self._remember()
+
     def _selected(self):
         return (self.status_names[self.pvs["status"].get()],
                 self.material_names[self.pvs["material"].get()])
@@ -170,6 +183,9 @@ class Device:
         A list in the table is [HIHI, HIGH, LOW, LOLO] for that PV's alarm
         fields; a scalar is a value to write to the PV itself.  Same rule as
         his states.yaml, so a table written for one reads in the other."""
+        key = str(pv).rsplit(":", 1)[-1]
+        if key in ("status", "material"):
+            self._chosen(key)
         status, material = self._selected()
 
         if not self.state_table_validated or not self.apply_enabled:
@@ -248,6 +264,7 @@ class Device:
             if key in last:
                 try:
                     self.pvs[key].set(int(last[key]))
+                    self._chosen(key)
                 except Exception as e:              # noqa: BLE001
                     log.warning("could not restore %s: %s", key, e)
         log.info("restored previous state: %s", last or "defaults")

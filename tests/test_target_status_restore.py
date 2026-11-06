@@ -20,6 +20,9 @@ class FakePV:
     def set(self, value):
         self.value = value
 
+    def set_alarm(self, *_alarm):
+        pass
+
 
 def fake(tmp_path, materials, status=0, material=0):
     dev = types.SimpleNamespace(
@@ -28,6 +31,7 @@ def fake(tmp_path, materials, status=0, material=0):
         material_names=list(materials),
         pvs={"status": FakePV(status), "material": FakePV(material)},
     )
+    dev._chosen = types.MethodType(Device._chosen, dev)
     dev._remember = types.MethodType(Device._remember, dev)
     dev.connect = types.MethodType(Device.connect, dev)
     return dev

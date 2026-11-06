@@ -67,10 +67,15 @@ lab answers are in `docs/COOLDOWN_SIM_OPEN_QUESTIONS.md`.
   offset).  Points go to `fringe_calibration_*.csv` (one file per chart,
   never deleted, reloaded on restart).
 * Ells's call: `dev-sim` merged into `elong`; work continues on `elong`.
-* Found, not fixed (lab IOCs; asked Ells): purple material/dopant on a fresh
-  start (no saved state, records undefined), and 18 microwave readbacks
-  (UCA supply, source, robot) in false HIHI because the shared base device
-  sets alarm severities with every limit at 0.
+* Fixed on elong (lab IOCs too): the target material, dopant and state, and
+  the supervisor's Dopant, stayed purple (INVALID/UDF) for good, even after
+  being chosen or restored at start: pythonSoftIOC re-applies an Out
+  record's start-up alarm on every write.  They now clear when a value is
+  chosen, restored, or followed from the cryo selection; purple means only
+  "never chosen" (`tests/test_selection_alarms.py`, through real EPICS).
+* Found, not fixed (review with Ells the week of 2026-11-09): 15 microwave
+  readbacks (UCA supply, source, robot) in false HIHI MAJOR because the
+  shared base device sets alarm severities with every limit at 0.
 
 ### 2026-11-04: the live cool-down from warm; quick start; magnet and microwave fixes
 
