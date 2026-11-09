@@ -85,8 +85,8 @@ class SPD1000XController:
 
     # Default trip thresholds, also the maximum allowed protection PV values.
     # Reapplied while output is OFF on each startup/reconnect.
-    DEFAULT_OVP = 5.1
-    DEFAULT_OCP = 0.11
+    DEFAULT_OVP = 7.00
+    DEFAULT_OCP = 0.200
 
     HARDWARE_MAX_VOLTAGE = 30.0
     HARDWARE_MAX_CURRENT = 5.0
