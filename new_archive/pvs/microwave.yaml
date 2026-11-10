@@ -1,0 +1,18 @@
+pvs:
+- UNH:GEN:MW:PS:VMEAS
+- UNH:GEN:MW:SCOPE:SIG_VI
+- UNH:GEN:MW:SRC:MW_OutFI
+- UNH:GEN:MW:SRC:MW_PWRI
+- UNH:GEN:MW:SRC:MW_RF_RBV
+- UNH:GEN:MW:SRC:MW_SweepActive
+- UNH:GEN:MW:SRC:MW_SweepBidirectional
+- UNH:GEN:MW:SRC:MW_SweepDirection
+- UNH:GEN:MW:SRC:MW_SweepEndI
+- UNH:GEN:MW:SRC:MW_SweepRepeat
+- UNH:GEN:MW:SRC:MW_SweepStartI
+- UNH:GEN:MW:SRC:MW_SweepStepI
+- UNH:GEN:MW:SRC:MW_SweepTimeI
+- UNH:GEN:MW:SUP:SweepDwell
+- UNH:GEN:MW:SUP:SweepStep
+- UNH:GEN:MW:SUP:SweepStart
+- UNH:GEN:MW:SUP:SweepStop
