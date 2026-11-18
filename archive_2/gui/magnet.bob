@@ -1,0 +1,220 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<display version="2.0.0">
+  <name>Magnet recording and history</name>
+  <width>1120</width>
+  <height>810</height>
+  <macros>
+    <P>UNH:GEN:MAG:ARCH</P>
+  </macros>
+  <widget type="label" version="3.0.0">
+    <name>Magnet — recording and saved history</name>
+    <x>25</x>
+    <y>20</y>
+    <width>1000</width>
+    <height>28</height>
+    <text>Magnet — recording and saved history</text>
+  </widget>
+  <widget type="label" version="3.0.0">
+    <name>Normal save interval (s)</name>
+    <x>25</x>
+    <y>70</y>
+    <width>240</width>
+    <height>28</height>
+    <text>Normal save interval (s)</text>
+  </widget>
+  <widget type="textentry" version="3.0.0">
+    <name>SaveInterval</name>
+    <x>270</x>
+    <y>68</y>
+    <width>120</width>
+    <height>30</height>
+    <pv_name>ca://$(P):SaveInterval</pv_name>
+  </widget>
+  <widget type="label" version="3.0.0">
+    <name>Effective interval (s)</name>
+    <x>440</x>
+    <y>70</y>
+    <width>230</width>
+    <height>28</height>
+    <text>Effective interval (s)</text>
+  </widget>
+  <widget type="textupdate" version="3.0.0">
+    <name>EffectiveInterval</name>
+    <x>680</x>
+    <y>70</y>
+    <width>160</width>
+    <height>28</height>
+    <pv_name>ca://$(P):EffectiveInterval</pv_name>
+  </widget>
+  <widget type="label" version="3.0.0">
+    <name>Channel</name>
+    <x>25</x>
+    <y>130</y>
+    <width>100</width>
+    <height>28</height>
+    <text>Channel</text>
+  </widget>
+  <widget type="textentry" version="3.0.0">
+    <name>HistoryPV</name>
+    <x>130</x>
+    <y>128</y>
+    <width>670</width>
+    <height>30</height>
+    <pv_name>ca://$(P):HistoryPV</pv_name>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>Choose channel</name>
+    <x>850</x>
+    <y>128</y>
+    <width>190</width>
+    <height>30</height>
+    <text>Choose channel</text>
+    <actions>
+      <action type="open_display">
+        <file>magnet_channels.bob</file>
+        <target>tab</target>
+      </action>
+    </actions>
+  </widget>
+  <widget type="label" version="3.0.0">
+    <name>Window (hours)</name>
+    <x>25</x>
+    <y>180</y>
+    <width>155</width>
+    <height>28</height>
+    <text>Window (hours)</text>
+  </widget>
+  <widget type="textentry" version="3.0.0">
+    <name>HistoryHours</name>
+    <x>190</x>
+    <y>178</y>
+    <width>120</width>
+    <height>30</height>
+    <pv_name>ca://$(P):HistoryHours</pv_name>
+  </widget>
+  <widget type="label" version="3.0.0">
+    <name>End: hours ago</name>
+    <x>355</x>
+    <y>180</y>
+    <width>165</width>
+    <height>28</height>
+    <text>End: hours ago</text>
+  </widget>
+  <widget type="textentry" version="3.0.0">
+    <name>HistoryOffsetHours</name>
+    <x>530</x>
+    <y>178</y>
+    <width>120</width>
+    <height>30</height>
+    <pv_name>ca://$(P):HistoryOffsetHours</pv_name>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>Load / Refresh</name>
+    <x>850</x>
+    <y>178</y>
+    <width>190</width>
+    <height>30</height>
+    <text>Load / Refresh</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryLoad</pv_name>
+        <value>1</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="textupdate" version="3.0.0">
+    <name>HistoryStatus</name>
+    <x>25</x>
+    <y>225</y>
+    <width>1000</width>
+    <height>28</height>
+    <pv_name>ca://$(P):HistoryStatus</pv_name>
+  </widget>
+  <widget type="label" version="3.0.0">
+    <name>UTC start</name>
+    <x>25</x>
+    <y>265</y>
+    <width>110</width>
+    <height>28</height>
+    <text>UTC start</text>
+  </widget>
+  <widget type="textupdate" version="3.0.0">
+    <name>HistoryStartUTC</name>
+    <x>140</x>
+    <y>265</y>
+    <width>360</width>
+    <height>28</height>
+    <pv_name>ca://$(P):HistoryStartUTC</pv_name>
+  </widget>
+  <widget type="label" version="3.0.0">
+    <name>UTC end</name>
+    <x>570</x>
+    <y>265</y>
+    <width>100</width>
+    <height>28</height>
+    <text>UTC end</text>
+  </widget>
+  <widget type="textupdate" version="3.0.0">
+    <name>HistoryEndUTC</name>
+    <x>680</x>
+    <y>265</y>
+    <width>360</width>
+    <height>28</height>
+    <pv_name>ca://$(P):HistoryEndUTC</pv_name>
+  </widget>
+  <widget type="xyplot" version="3.0.0">
+    <name>Saved data</name>
+    <x>25</x>
+    <y>310</y>
+    <width>1060</width>
+    <height>410</height>
+    <title>Saved data</title>
+    <show_toolbar>true</show_toolbar>
+    <x_axis>
+      <title>Hours relative to window end</title>
+      <autoscale>true</autoscale>
+      <show_grid>true</show_grid>
+    </x_axis>
+    <y_axes>
+      <y_axis>
+        <title>Recorded value (channel units)</title>
+        <autoscale>true</autoscale>
+        <show_grid>true</show_grid>
+      </y_axis>
+    </y_axes>
+    <traces>
+      <trace>
+        <name>Saved data</name>
+        <x_pv>ca://$(P):HistoryX</x_pv>
+        <y_pv>ca://$(P):HistoryY</y_pv>
+        <axis>0</axis>
+        <trace_type>0</trace_type>
+        <line_width>1</line_width>
+        <point_type>2</point_type>
+        <point_size>2</point_size>
+      </trace>
+    </traces>
+  </widget>
+  <widget type="label" version="3.0.0">
+    <name>History loads on request. Up to 10,000 rows are displayed.</name>
+    <x>25</x>
+    <y>745</y>
+    <width>1000</width>
+    <height>28</height>
+    <text>History loads on request. Up to 10,000 rows are displayed.</text>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>All subsystems</name>
+    <x>25</x>
+    <y>775</y>
+    <width>190</width>
+    <height>30</height>
+    <text>All subsystems</text>
+    <actions>
+      <action type="open_display">
+        <file>overview.bob</file>
+        <target>tab</target>
+      </action>
+    </actions>
+  </widget>
+</display>

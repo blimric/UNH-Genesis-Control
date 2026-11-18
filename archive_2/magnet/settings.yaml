@@ -1,0 +1,8 @@
+# Paths inside this package are relative to this settings file.
+subsystem: magnet
+save_interval_s: 1.0
+control_prefix: UNH:GEN:MAG:ARCH
+server_port: 5142
+data_root: /home/shared/cooldown_data
+pv_file: pvs.yaml
+epics_ca_addr_list: 127.0.0.1:5131

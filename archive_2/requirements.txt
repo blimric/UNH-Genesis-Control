@@ -1,0 +1,4 @@
+PyYAML>=6
+numpy
+aioca>=1.8
+softioc>=4.7

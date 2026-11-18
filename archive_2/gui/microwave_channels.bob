@@ -1,0 +1,255 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<display version="2.0.0">
+  <name>Microwave channels</name>
+  <width>425</width>
+  <height>1050</height>
+  <macros>
+    <P>UNH:GEN:MW:ARCH</P>
+  </macros>
+  <widget type="label" version="3.0.0">
+    <name>Select a channel, then return to history and Load / Refresh.</name>
+    <x>20</x>
+    <y>15</y>
+    <width>400</width>
+    <height>28</height>
+    <text>Select a channel, then return to history and Load / Refresh.</text>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MW:PS:VMEAS</name>
+    <x>15</x>
+    <y>60</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MW:PS:VMEAS</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MW:PS:VMEAS</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MW:SCOPE:SIG_VI</name>
+    <x>15</x>
+    <y>95</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MW:SCOPE:SIG_VI</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MW:SCOPE:SIG_VI</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MW:SRC:MW_OutFI</name>
+    <x>15</x>
+    <y>130</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MW:SRC:MW_OutFI</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MW:SRC:MW_OutFI</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MW:SRC:MW_PWRI</name>
+    <x>15</x>
+    <y>165</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MW:SRC:MW_PWRI</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MW:SRC:MW_PWRI</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MW:SRC:MW_RF_RBV</name>
+    <x>15</x>
+    <y>200</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MW:SRC:MW_RF_RBV</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MW:SRC:MW_RF_RBV</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MW:SRC:MW_SweepActive</name>
+    <x>15</x>
+    <y>235</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MW:SRC:MW_SweepActive</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MW:SRC:MW_SweepActive</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MW:SRC:MW_SweepBidirectional</name>
+    <x>15</x>
+    <y>270</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MW:SRC:MW_SweepBidirectional</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MW:SRC:MW_SweepBidirectional</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MW:SRC:MW_SweepDirection</name>
+    <x>15</x>
+    <y>305</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MW:SRC:MW_SweepDirection</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MW:SRC:MW_SweepDirection</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MW:SRC:MW_SweepEndI</name>
+    <x>15</x>
+    <y>340</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MW:SRC:MW_SweepEndI</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MW:SRC:MW_SweepEndI</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MW:SRC:MW_SweepRepeat</name>
+    <x>15</x>
+    <y>375</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MW:SRC:MW_SweepRepeat</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MW:SRC:MW_SweepRepeat</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MW:SRC:MW_SweepStartI</name>
+    <x>15</x>
+    <y>410</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MW:SRC:MW_SweepStartI</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MW:SRC:MW_SweepStartI</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MW:SRC:MW_SweepStepI</name>
+    <x>15</x>
+    <y>445</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MW:SRC:MW_SweepStepI</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MW:SRC:MW_SweepStepI</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MW:SRC:MW_SweepTimeI</name>
+    <x>15</x>
+    <y>480</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MW:SRC:MW_SweepTimeI</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MW:SRC:MW_SweepTimeI</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MW:SUP:SweepDwell</name>
+    <x>15</x>
+    <y>515</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MW:SUP:SweepDwell</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MW:SUP:SweepDwell</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MW:SUP:SweepStep</name>
+    <x>15</x>
+    <y>550</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MW:SUP:SweepStep</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MW:SUP:SweepStep</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MW:SUP:SweepStart</name>
+    <x>15</x>
+    <y>585</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MW:SUP:SweepStart</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MW:SUP:SweepStart</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MW:SUP:SweepStop</name>
+    <x>15</x>
+    <y>620</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MW:SUP:SweepStop</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MW:SUP:SweepStop</value>
+      </action>
+    </actions>
+  </widget>
+</display>

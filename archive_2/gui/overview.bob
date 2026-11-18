@@ -1,0 +1,73 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<display version="2.0.0">
+  <name>Genesis Archive</name>
+  <width>600</width>
+  <height>300</height>
+  <macros>
+    <P />
+  </macros>
+  <widget type="label" version="3.0.0">
+    <name>Genesis subsystem recorders</name>
+    <x>25</x>
+    <y>20</y>
+    <width>560</width>
+    <height>28</height>
+    <text>Genesis subsystem recorders</text>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>Cryo</name>
+    <x>25</x>
+    <y>65</y>
+    <width>540</width>
+    <height>30</height>
+    <text>Cryo</text>
+    <actions>
+      <action type="open_display">
+        <file>cryo.bob</file>
+        <target>tab</target>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>Microwave</name>
+    <x>25</x>
+    <y>110</y>
+    <width>540</width>
+    <height>30</height>
+    <text>Microwave</text>
+    <actions>
+      <action type="open_display">
+        <file>microwave.bob</file>
+        <target>tab</target>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>Magnet</name>
+    <x>25</x>
+    <y>155</y>
+    <width>540</width>
+    <height>30</height>
+    <text>Magnet</text>
+    <actions>
+      <action type="open_display">
+        <file>magnet.bob</file>
+        <target>tab</target>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>Ssrf</name>
+    <x>25</x>
+    <y>200</y>
+    <width>540</width>
+    <height>30</height>
+    <text>Ssrf</text>
+    <actions>
+      <action type="open_display">
+        <file>ssrf.bob</file>
+        <target>tab</target>
+      </action>
+    </actions>
+  </widget>
+</display>

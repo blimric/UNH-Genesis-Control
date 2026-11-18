@@ -1,0 +1,24 @@
+# Paths inside this package are relative to this settings file.
+subsystem: ssrf
+save_interval_s: 1.0
+control_prefix: UNH:GEN:SSRF:ARCH
+server_port: 5143
+data_root: /home/shared/cooldown_data
+pv_file: pvs.yaml
+epics_ca_addr_list: 127.0.0.1:5068 127.0.0.1:5071 127.0.0.1:5072 127.0.0.1:5073 127.0.0.1:5074
+  127.0.0.1:5100 127.0.0.1:5090 192.168.1.24:5064
+burn_logging:
+  enabled: true
+  state_pv: UNH:GEN:SSRF:SEQ:EXECUTION_STATE
+  session_pv: UNH:GEN:SSRF:RECIPE:SESSION_ID
+  sample_count: 8192
+  parameters:
+    CARRIER_MHZ: UNH:GEN:SSRF:SEQ:CARRIER_MHZ
+    START_LEVEL_DBM: UNH:GEN:SSRF:SEQ:START_LEVEL_DBM
+    TARGET_LEVEL_DBM: UNH:GEN:SSRF:SEQ:TARGET_LEVEL_DBM
+    FM_DEV_KHZ: UNH:GEN:SSRF:SEQ:FM_DEV_KHZ
+    FM_PERIOD_S: UNH:GEN:SSRF:SEQ:FM_PERIOD_S
+    FM_REPEATS: UNH:GEN:SSRF:SEQ:FM_REPEATS
+    VHIGH_V: UNH:GEN:SSRF:SEQ:VHIGH_V
+    VLOW_V: UNH:GEN:SSRF:SEQ:VLOW_V
+    PREPARED_WAVEFORM_ID: UNH:GEN:SSRF:SEQ:PREPARED_WAVEFORM_ID

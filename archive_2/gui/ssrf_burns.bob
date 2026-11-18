@@ -1,0 +1,118 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<display version="2.0.0">
+  <name>ssRF saved burns</name>
+  <width>1120</width>
+  <height>750</height>
+  <macros>
+    <P>UNH:GEN:SSRF:ARCH</P>
+  </macros>
+  <widget type="label" version="3.0.0">
+    <name>ssRF — waveform saved in the burn log</name>
+    <x>25</x>
+    <y>20</y>
+    <width>1000</width>
+    <height>28</height>
+    <text>ssRF — waveform saved in the burn log</text>
+  </widget>
+  <widget type="label" version="3.0.0">
+    <name>Burn index (0 = most recent)</name>
+    <x>25</x>
+    <y>70</y>
+    <width>300</width>
+    <height>28</height>
+    <text>Burn index (0 = most recent)</text>
+  </widget>
+  <widget type="textentry" version="3.0.0">
+    <name>BurnIndex</name>
+    <x>340</x>
+    <y>68</y>
+    <width>120</width>
+    <height>30</height>
+    <pv_name>ca://$(P):BurnIndex</pv_name>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>Load burn</name>
+    <x>850</x>
+    <y>68</y>
+    <width>190</width>
+    <height>30</height>
+    <text>Load burn</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):BurnLoad</pv_name>
+        <value>1</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="textupdate" version="3.0.0">
+    <name>BurnStatus</name>
+    <x>25</x>
+    <y>120</y>
+    <width>1000</width>
+    <height>28</height>
+    <pv_name>ca://$(P):BurnStatus</pv_name>
+  </widget>
+  <widget type="textupdate" version="3.0.0">
+    <name>BurnID</name>
+    <x>25</x>
+    <y>160</y>
+    <width>500</width>
+    <height>28</height>
+    <pv_name>ca://$(P):BurnID</pv_name>
+  </widget>
+  <widget type="textupdate" version="3.0.0">
+    <name>BurnStartUTC</name>
+    <x>580</x>
+    <y>160</y>
+    <width>500</width>
+    <height>28</height>
+    <pv_name>ca://$(P):BurnStartUTC</pv_name>
+  </widget>
+  <widget type="xyplot" version="3.0.0">
+    <name>Saved burn waveform</name>
+    <x>25</x>
+    <y>220</y>
+    <width>1060</width>
+    <height>420</height>
+    <title>Saved burn waveform</title>
+    <show_toolbar>true</show_toolbar>
+    <x_axis>
+      <title>Time since waveform start (s)</title>
+      <autoscale>true</autoscale>
+      <show_grid>true</show_grid>
+    </x_axis>
+    <y_axes>
+      <y_axis>
+        <title>Waveform (V)</title>
+        <autoscale>true</autoscale>
+        <show_grid>true</show_grid>
+      </y_axis>
+    </y_axes>
+    <traces>
+      <trace>
+        <name>Saved burn waveform</name>
+        <x_pv>ca://$(P):BurnX</x_pv>
+        <y_pv>ca://$(P):BurnY</y_pv>
+        <axis>0</axis>
+        <trace_type>0</trace_type>
+        <line_width>1</line_width>
+        <point_type>2</point_type>
+        <point_size>2</point_size>
+      </trace>
+    </traces>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>ssRF snapshots</name>
+    <x>25</x>
+    <y>680</y>
+    <width>190</width>
+    <height>30</height>
+    <text>ssRF snapshots</text>
+    <actions>
+      <action type="open_display">
+        <file>ssrf.bob</file>
+        <target>tab</target>
+      </action>
+    </actions>
+  </widget>
+</display>
