@@ -1,0 +1,42 @@
+Starting iocInit
+############################################################################
+## EPICS 7.0.10.1-DEV
+## Rev. 7.0.10.99.0.2
+## Rev. Date 7.0.10.99.0.2
+############################################################################
+iocRun: All initialization complete
+Recording microwave -> /home/ben/UNH-Genesis-Control/archive_2/microwave/microwave_20261118T160513_834491Z_44942_e6193a.csv
+Starting iocInit
+############################################################################
+## EPICS 7.0.10.1-DEV
+## Rev. 7.0.10.99.0.2
+## Rev. Date 7.0.10.99.0.2
+############################################################################
+iocRun: All initialization complete
+Recording microwave -> /home/ben/UNH-Genesis-Control/archive_2/microwave/microwave_20261118T214756_193601Z_54332_520e99.csv
+Starting iocInit
+############################################################################
+## EPICS 7.0.10.1-DEV
+## Rev. 7.0.10.99.0.2
+## Rev. Date 7.0.10.99.0.2
+############################################################################
+iocRun: All initialization complete
+Recording microwave -> /home/ben/UNH-Genesis-Control/archive_2/microwave/microwave_20261118T220949_912683Z_54929_6986df.csv
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6142"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.131738673
+..................................................................
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6140"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.132562501
+..................................................................
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6141"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.151052070
+..................................................................

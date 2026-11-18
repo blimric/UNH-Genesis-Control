@@ -1,0 +1,36 @@
+Starting iocInit
+############################################################################
+## EPICS 7.0.10.1-DEV
+## Rev. 7.0.10.99.0.2
+## Rev. Date 7.0.10.99.0.2
+############################################################################
+iocRun: All initialization complete
+Recording ssrf -> /home/ben/UNH-Genesis-Control/archive_2/ssrf/ssrf_20261118T160515_483006Z_45026_f7f6c4.csv
+Starting iocInit
+############################################################################
+## EPICS 7.0.10.1-DEV
+## Rev. 7.0.10.99.0.2
+## Rev. Date 7.0.10.99.0.2
+############################################################################
+iocRun: All initialization complete
+Recording ssrf -> /home/ben/UNH-Genesis-Control/archive_2/ssrf/ssrf_20261118T214757_816671Z_54416_dca0ac.csv
+Starting iocInit
+############################################################################
+## EPICS 7.0.10.1-DEV
+## Rev. 7.0.10.99.0.2
+## Rev. Date 7.0.10.99.0.2
+############################################################################
+iocRun: All initialization complete
+Recording ssrf -> /home/ben/UNH-Genesis-Control/archive_2/ssrf/ssrf_20261118T220951_574844Z_55029_c09e6b.csv
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6135"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.133848008
+..................................................................
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6130"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.136846611
+..................................................................

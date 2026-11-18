@@ -5,4 +5,5 @@ control_prefix: UNH:GEN:MAG:ARCH
 server_port: 5142
 data_root: /home/shared/cooldown_data
 pv_file: pvs.yaml
-epics_ca_addr_list: 127.0.0.1:5131
+#epics_ca_addr_list: 127.0.0.1:5131
+epics_ca_addr_list: 127.0.0.1:6136

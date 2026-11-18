@@ -1,0 +1,114 @@
+Starting iocInit
+############################################################################
+## EPICS 7.0.10.1-DEV
+## Rev. 7.0.10.99.0.2
+## Rev. Date 7.0.10.99.0.2
+############################################################################
+iocRun: All initialization complete
+Recording cryo -> /home/ben/UNH-Genesis-Control/archive_2/cryo/cryo_20261118T160512_962643Z_44900_c1ad0b.csv
+Starting iocInit
+############################################################################
+## EPICS 7.0.10.1-DEV
+## Rev. 7.0.10.99.0.2
+## Rev. Date 7.0.10.99.0.2
+############################################################################
+iocRun: All initialization complete
+Recording cryo -> /home/ben/UNH-Genesis-Control/archive_2/cryo/cryo_20261118T214755_391600Z_54290_b45b05.csv
+Starting iocInit
+############################################################################
+## EPICS 7.0.10.1-DEV
+## Rev. 7.0.10.99.0.2
+## Rev. Date 7.0.10.99.0.2
+############################################################################
+iocRun: All initialization complete
+Recording cryo -> /home/ben/UNH-Genesis-Control/archive_2/cryo/cryo_20261118T220949_101625Z_54827_fb26d1.csv
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6111"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.091002595
+..................................................................
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6116"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.133423492
+..................................................................
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6128"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.134944931
+..................................................................
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6115"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.135266588
+..................................................................
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6110"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.135511453
+..................................................................
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6114"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.135727198
+..................................................................
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6118"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.135973663
+..................................................................
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6117"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.136990164
+..................................................................
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6112"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.138099553
+..................................................................
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6127"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.138183190
+..................................................................
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6113"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.139147120
+..................................................................
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6129"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.139402445
+..................................................................
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6126"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.140188162
+..................................................................
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6124"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.140394267
+..................................................................
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6125"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.142695645
+..................................................................

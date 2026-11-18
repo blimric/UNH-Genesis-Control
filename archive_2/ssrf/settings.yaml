@@ -5,8 +5,10 @@ control_prefix: UNH:GEN:SSRF:ARCH
 server_port: 5143
 data_root: /home/shared/cooldown_data
 pv_file: pvs.yaml
-epics_ca_addr_list: 127.0.0.1:5068 127.0.0.1:5071 127.0.0.1:5072 127.0.0.1:5073 127.0.0.1:5074
-  127.0.0.1:5100 127.0.0.1:5090 192.168.1.24:5064
+#epics_ca_addr_list: 127.0.0.1:5068 127.0.0.1:5071 127.0.0.1:5072 127.0.0.1:5073 127.0.0.1:5074
+#  127.0.0.1:5100 127.0.0.1:5090 192.168.1.24:5064
+epics_ca_addr_list: 127.0.0.1:6130 127.0.0.1:6131 127.0.0.1:6132 127.0.0.1:6133
+   127.0.0.1:6134  127.0.0.1:6135  127.0.0.1:6100
 burn_logging:
   enabled: true
   state_pv: UNH:GEN:SSRF:SEQ:EXECUTION_STATE

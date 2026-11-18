@@ -1,0 +1,30 @@
+Starting iocInit
+############################################################################
+## EPICS 7.0.10.1-DEV
+## Rev. 7.0.10.99.0.2
+## Rev. Date 7.0.10.99.0.2
+############################################################################
+iocRun: All initialization complete
+Recording magnet -> /home/ben/UNH-Genesis-Control/archive_2/magnet/magnet_20261118T160514_636627Z_44984_fe0f69.csv
+Starting iocInit
+############################################################################
+## EPICS 7.0.10.1-DEV
+## Rev. 7.0.10.99.0.2
+## Rev. Date 7.0.10.99.0.2
+############################################################################
+iocRun: All initialization complete
+Recording magnet -> /home/ben/UNH-Genesis-Control/archive_2/magnet/magnet_20261118T214756_987887Z_54374_f6f7fd.csv
+Starting iocInit
+############################################################################
+## EPICS 7.0.10.1-DEV
+## Rev. 7.0.10.99.0.2
+## Rev. Date 7.0.10.99.0.2
+############################################################################
+iocRun: All initialization complete
+Recording magnet -> /home/ben/UNH-Genesis-Control/archive_2/magnet/magnet_20261118T220950_720619Z_54983_2b0b7a.csv
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "localhost:6136"
+    Source File: modules/ca/src/client/cac.cpp line 1238
+    Current Time: Wed Nov 18 2026 17:23:22.141373573
+..................................................................
