@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Start the whole Genesis live system on this laptop (WSL), as on 2026-10-24:
+# Start the whole Genesis live system on this laptop (WSL) for a cool-down:
 # cryo stack (+ Pi bridges), trend history, magnet IOC, online fitter, master
 # archiver, PyNMR (Windows), Phoebus with the Panopticon, then the microwave
 # stack (you type READY at its physical-sequence prompt).
+# See Cooldown-Quick-Start-Guide.md at the top of the repository.
 #
 #   start.sh                 # everything
 #   start.sh --no-pynmr      # skip PyNMR          --no-microwaves   skip the microwave stack
@@ -36,6 +37,13 @@ mkdir -p logs
 step() { printf '\n===== %s =====\n' "$*"; }
 running() { screen -ls 2>/dev/null | grep -qE "[0-9]+\.$1[[:space:]]"; }
 
+# Elena Long (2026-11-18): the simulation (start_cooldown_sim) uses the same PV names
+if running genesis-sim; then
+    echo "[FAIL] a simulated cool-down is running on this computer; end it first:"
+    echo "       $ROOT/start_cooldown_sim/stop.sh"
+    exit 2
+fi
+
 step "0. Network"
 reach() {   # host label
     if ping -c1 -W2 "$1" >/dev/null 2>&1; then echo "[OK]   $2 ($1)"; else echo "[WARN] $2 ($1) not answering"; fi
@@ -46,6 +54,19 @@ reach 192.168.1.19 "UCA supply"
 reach 192.168.1.23 "microwave Pi"
 reach 192.168.1.24 "cryo Pi"
 reach 192.168.0.72 "JLab NMR FPGA (needs the 192.168.0.x/24 address)"
+
+# Elena Long (2026-11-18): say so when this copy is behind its origin (the
+# Windows checkout or GitHub), so an old copy is not run by mistake
+if timeout 15 git fetch -q origin 2>/dev/null; then
+    branch="$(git branch --show-current)"
+    behind="$(git rev-list --count "HEAD..origin/$branch" 2>/dev/null || echo 0)"
+    if ((behind > 0)); then
+        echo "[NOTE] this copy is $behind commit(s) behind origin/$branch: stop, then run"
+        echo "       $ROOT/start_cooldown/update.sh"
+    else
+        echo "[OK]   code up to date ($(git log --oneline -1))"
+    fi
+fi
 
 step "1. Laptop-only settings (not committed; this lab's hardware)"
 # The LS455 reports in tesla (UNIT? = T): its tesla_scale must be 1.0 until the
@@ -87,8 +108,8 @@ step "5. Online NMR fitter (CA 5100, sweeps on 8777)"
 if running genesis-fitter; then echo "[UP] already running"; else
     screen -dmS genesis-fitter env EPICS_CAS_SERVER_PORT=5100 EPICS_PVA_SERVER_PORT=5101 EPICS_CA_MAX_ARRAY_BYTES=262144 \
         EPICS_CA_AUTO_ADDR_LIST=NO EPICS_CA_ADDR_LIST=127.0.0.1:5071 PYTHONPATH="$ROOT" \
-        bash -c "$PY -u -m online_fitter.epics_run --material d-butanol --mode equilibrium >> logs/genesis-fitter-live.log 2>&1"
-    echo "[STARTED]"
+        bash -c "$PY -u -m online_fitter.epics_run --material '${FITTER_MATERIAL:-d-butanol}' --mode equilibrium >> logs/genesis-fitter-live.log 2>&1"
+    echo "[STARTED] material ${FITTER_MATERIAL:-d-butanol} (FITTER_MATERIAL in $ENV_FILE; also settable on the fitter screen)"
 fi
 
 step "6. Master archiver (read-only, every subsystem's PVs)"
@@ -126,7 +147,7 @@ if ((want_microwaves)); then
         if [[ "$ans" != "skip" ]]; then
             ./scripts/microwave_physical.sh start
         else
-            echo "[SKIP] start later with: $ROOT/scripts/live_laptop/start.sh (it fills in what is missing)"
+            echo "[SKIP] start later with: $ROOT/start_cooldown/start.sh (it fills in what is missing)"
         fi
     fi
 fi
@@ -134,4 +155,4 @@ fi
 step "Running now"
 screen -ls | grep -oE "[0-9]+\.[a-z0-9_-]+" | sed 's/^[0-9]*\./  /' | sort
 echo
-echo "Stop everything (and copy the data to Windows) with: $ROOT/scripts/live_laptop/stop.sh"
+echo "Stop everything (and copy the data to Windows) with: $ROOT/start_cooldown/stop.sh"

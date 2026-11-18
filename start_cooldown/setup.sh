@@ -2,8 +2,8 @@
 # One-time setup of a laptop as the Genesis lab machine (WSL Ubuntu).
 #
 #   bash setup.sh            # from a copy of this file, or:
-#   git clone -b dev-visualizer https://github.com/ellie-long/UNH-Genesis-Control.git ~/genesis-live \
-#     && ~/genesis-live/scripts/live_laptop/setup.sh
+#   git -c core.autocrlf=false clone -b elong https://github.com/ellie-long/UNH-Genesis-Control.git ~/genesis-live \
+#     && ~/genesis-live/start_cooldown/setup.sh
 #
 # Safe to re-run: every step checks first and skips what is already done.
 # Never stores a password: SSH keys are installed with the Pi's own password
@@ -11,7 +11,7 @@
 set -uo pipefail
 
 REPO_URL="${GENESIS_REPO_URL:-https://github.com/ellie-long/UNH-Genesis-Control.git}"
-BRANCH="${GENESIS_BRANCH:-dev-visualizer}"
+BRANCH="${GENESIS_BRANCH:-elong}"
 ROOT="${GENESIS_ROOT:-$HOME/genesis-live}"
 VENV="${GENESIS_VENV:-$HOME/.venvs/genesis-p1}"
 PHOEBUS_VERSION="${PHOEBUS_VERSION:-5.0.5}"
@@ -38,8 +38,8 @@ fi
 
 step "2. Genesis repository: $ROOT ($BRANCH)"
 if [[ -d "$ROOT/.git" ]]; then
-    git -C "$ROOT" fetch -q origin && git -C "$ROOT" checkout -q "$BRANCH" && git -C "$ROOT" pull -q --ff-only \
-        && ok "updated to $(git -C "$ROOT" log --oneline -1)"
+    # update.sh copes with start.sh's two laptop-only settings edits
+    GENESIS_BRANCH="$BRANCH" "$ROOT/start_cooldown/update.sh"
 else
     # a Linux-native clone (LF line endings): Utsav's .sh scripts do not run
     # from a Windows checkout
@@ -104,6 +104,9 @@ PYNMR_WIN_DIR='C:\\Users\\$win_user\\OneDrive\\Documents\\GitHub\\jlab_pynmr-unh
 CONDA_WIN_EXE='C:\\Users\\$win_user\\anaconda3\\Scripts\\conda.exe'
 PYNMR_CONDA_ENV=pynmr
 PYNMR_PROFILE=Deuteron
+# the online fitter's starting material (one of the fitter's names; it can
+# also be changed on the fitter screen)
+FITTER_MATERIAL=d-butanol
 # where stop.sh copies the night's data (a copy; WSL keeps the originals)
 DATA_COPY_DIR=/mnt/c/Users/$win_user
 EOF
@@ -114,9 +117,9 @@ fi
 
 step "7. Things only you can do (Windows side)"
 todo "NMR network: the Wi-Fi adapter needs a second address 192.168.0.x with mask 255.255.255.0 (/24, NOT /22),"
-todo "  no gateway, SkipAsSource (admin PowerShell; see scripts/live_laptop/README.md)"
+todo "  no gateway, SkipAsSource (admin PowerShell; see start_cooldown/README.md)"
 todo "PyNMR: a Windows conda env '${PYNMR_CONDA_ENV:-pynmr}' with jlab_pynmr (unh branch); its unh/data_streamer.yaml"
 todo "  needs 'enable: True' to feed the Genesis fitter"
 todo "Stop Genesis / LabVIEW on any other computer that owns the instruments before starting here"
 echo
-echo "Setup done. Start everything with:  $ROOT/scripts/live_laptop/start.sh"
+echo "Setup done. Start everything with:  $ROOT/start_cooldown/start.sh"

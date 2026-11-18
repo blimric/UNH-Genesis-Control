@@ -12,6 +12,10 @@ systems.
 
 > New here?  Run a simulated cool-down in two commands:
 > [Simulation Quick Start Guide](docs/SIMULATION_QUICK_START.md).
+>
+> Running a cool-down?  One command starts the whole live system (`start_cooldown/`)
+> or its simulated twin (`start_cooldown_sim/`):
+> [Cool-down Quick Start Guide](Cooldown-Quick-Start-Guide.md).
 
 ## Current scope
 
@@ -157,7 +161,9 @@ only; its dedicated runtime scripts, IOC, and Phoebus profile have been removed.
 **Try it on your own computer:** a simulated cool-down with the real Genesis
 software and screens, no hardware needed -- see the
 [Simulation Quick Start Guide](docs/SIMULATION_QUICK_START.md)
-(`bash tools/sim_setup.sh` once, then `bash tools/sim.sh`).  The full guide
+(`bash tools/sim_setup.sh` once, then `bash tools/sim.sh`).  On the lab
+laptop, `start_cooldown_sim/start.sh` and `stop.sh` run the same simulation in
+the background, as `start_cooldown/` runs the live system.  The full guide
 is [docs/COOLDOWN_SIM.md](docs/COOLDOWN_SIM.md).
 
 Physical and simulation configurations are intentionally separate.

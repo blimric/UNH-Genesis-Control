@@ -5,8 +5,8 @@ These are the steps that brought up the full live system on a Windows laptop
 microwaves, NMR (PyNMR plus the online fitter), the trend history, the
 master archiver and Phoebus with the Panopticon.
 
-`scripts/live_laptop/start.sh` does the same thing in one command (see
-`scripts/live_laptop/README.md`). Use this file when that script doesn't
+`start_cooldown/start.sh` does the same thing in one command (see
+`Cooldown-Quick-Start-Guide.md`). Use this file when that script doesn't
 work, or to see what it does.
 
 Run every `bash` command in a **WSL (Ubuntu) terminal** unless it says
@@ -36,7 +36,7 @@ Windows.
 ```bash
 sudo apt-get update && sudo apt-get install -y git screen curl lsof openjdk-21-jre libgtk-3-0 python3-venv
 # a Linux-native clone: Utsav's .sh scripts fail from a Windows checkout (CRLF)
-git -c core.autocrlf=false clone -b dev-visualizer https://github.com/ellie-long/UNH-Genesis-Control.git ~/genesis-live
+git -c core.autocrlf=false clone -b elong https://github.com/ellie-long/UNH-Genesis-Control.git ~/genesis-live
 python3 -m venv ~/.venvs/genesis-p1              # Python 3.11+ (3.13 used here)
 ~/.venvs/genesis-p1/bin/pip install -r ~/genesis-live/requirements.txt
 # Phoebus 5.0.5 for Linux, unpacked to ~/phoebus/product-5.0.5 (needs Java 21)
@@ -67,7 +67,9 @@ python3 -m venv ~/.venvs/genesis-p1              # Python 3.11+ (3.13 used here)
 ## 2. Every session: set up the terminal
 
 ```bash
-cd ~/genesis-live && git pull --ff-only
+~/genesis-live/start_cooldown/update.sh   # only while Genesis is stopped (a plain git pull
+                                          # refuses: the two laptop-only edits below)
+cd ~/genesis-live
 export PATH=$HOME/.venvs/genesis-p1/bin:/usr/local/bin:/usr/bin:/bin
 export CONDA_DEFAULT_ENV=genesis-p1 CONDA_PREFIX=$HOME/.venvs/genesis-p1   # Utsav's scripts check these
 mkdir -p logs
@@ -104,7 +106,8 @@ screen -dmS genesis-magnet env EPICS_CAS_SERVER_PORT=5131 EPICS_PVAS_SERVER_PORT
   bash -c "python -u master_ioc.py -s configs/magnet_physical/ips120 -i ips120 >> logs/magnet_ips120_live.log 2>&1"
 ```
 
-**4. Online NMR fitter** (CA 5100; receives PyNMR's sweeps on 8777):
+**4. Online NMR fitter** (CA 5100; receives PyNMR's sweeps on 8777; set
+`--material` to the target's, or change it later on the fitter screen):
 ```bash
 screen -dmS genesis-fitter env EPICS_CAS_SERVER_PORT=5100 EPICS_PVA_SERVER_PORT=5101 EPICS_CA_MAX_ARRAY_BYTES=262144 \
   EPICS_CA_AUTO_ADDR_LIST=NO EPICS_CA_ADDR_LIST=127.0.0.1:5071 PYTHONPATH=$HOME/genesis-live \

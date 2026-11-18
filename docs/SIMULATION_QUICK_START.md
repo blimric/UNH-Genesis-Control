@@ -31,6 +31,11 @@ the one command that installs it. Run that command, then run
 bash tools/sim.sh
 ```
 
+(This runs in the terminal; Ctrl+C ends it. To run it in the background
+instead, use `start_cooldown_sim/start.sh` and end it with
+`start_cooldown_sim/stop.sh`; see the
+[Cool-down Quick Start Guide](../Cooldown-Quick-Start-Guide.md).)
+
 After about a minute these windows open. They are Phoebus, the display
 program Genesis uses in the lab.
 

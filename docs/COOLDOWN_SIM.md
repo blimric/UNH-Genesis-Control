@@ -131,7 +131,9 @@ faults, notes and state changes. With the NMR leg it also writes
 ## 2b. The live cool-down from warm (every button working)
 
 New users: start with [SIMULATION_QUICK_START.md](SIMULATION_QUICK_START.md)
-(`bash tools/sim_setup.sh` once, then `bash tools/sim.sh`).
+(`bash tools/sim_setup.sh` once, then `bash tools/sim.sh`, or
+`start_cooldown_sim/start.sh` to run it in the background and
+`start_cooldown_sim/stop.sh` to end it).
 
     python -m cooldown_sim live                  # = run --mode interactive --source warm
                                                  #   --legs cryo,nmr,mw,ssrf + screens
