@@ -38,7 +38,7 @@ step() { printf '\n===== %s =====\n' "$*"; }
 running() { screen -ls 2>/dev/null | grep -qE "[0-9]+\.$1[[:space:]]"; }
 
 # Elena Long (2026-11-18): the simulation (start_cooldown_sim) uses the same PV names
-if running genesis-sim; then
+if running cooldown-sim; then
     echo "[FAIL] a simulated cool-down is running on this computer; end it first:"
     echo "       $ROOT/start_cooldown_sim/stop.sh"
     exit 2

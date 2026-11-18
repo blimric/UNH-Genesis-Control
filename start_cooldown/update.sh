@@ -24,9 +24,9 @@ LOCAL_EDITS=(configs/target_physical/ls455/settings.yaml configs/magnet_physical
 
 cd "$ROOT" || { echo "[FAIL] no Genesis repository at $ROOT (run setup.sh)"; exit 1; }
 
-if screen -ls 2>/dev/null | grep -qE "[0-9]+\.(genesis-|ioc-manager)"; then
-    echo "[FAIL] Genesis is running on this laptop; stop it first:"
-    echo "       $ROOT/start_cooldown/stop.sh"
+if screen -ls 2>/dev/null | grep -qE "[0-9]+\.(genesis-|ioc-manager|cooldown-sim)"; then
+    echo "[FAIL] Genesis (live or simulated) is running on this laptop; stop it first:"
+    echo "       $ROOT/start_cooldown/stop.sh   or   $ROOT/start_cooldown_sim/stop.sh"
     exit 1
 fi
 

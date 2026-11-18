@@ -28,7 +28,7 @@ the laptop's copy, `~/genesis-live`.
 | Screens | Panopticon | Sim Control, Panopticon, Magnet, Cryo, Microwave, NMR fitter |
 | Time | Real time | Time warp: pause, 1x, up to 600x |
 | Data | `~/genesis-live-local_data/`, copied to Windows at stop | The run folder, `logs/cooldown_sim/<run>/`, with `report.md` |
-| Runs in | `screen` sessions `genesis-*`, `ioc-manager` | `screen` session `genesis-sim` |
+| Runs in | `screen` sessions `genesis-*`, `ioc-manager` | `screen` session `cooldown-sim` |
 
 The two can't run at the same time on one computer. They use the same PV
 names, so `start.sh` refuses while the live system is running.

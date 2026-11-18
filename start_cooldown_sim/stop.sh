@@ -15,7 +15,7 @@ if [[ -z "${GENESIS_SIM_VENV:-}" ]]; then
 fi
 PY="$GENESIS_SIM_VENV/bin/python"
 cd "$ROOT" || exit 1
-session_up() { screen -ls 2>/dev/null | grep -qE "[0-9]+\.genesis-sim[[:space:]]"; }
+session_up() { screen -ls 2>/dev/null | grep -qE "[0-9]+\.cooldown-sim[[:space:]]"; }
 
 run="$("$PY" -c "from cooldown_sim import run_dir; r = run_dir.latest(); print(r or '')" 2>/dev/null)"
 
@@ -26,7 +26,7 @@ if session_up; then
     if session_up; then
         echo "[WARN] the session did not end in 2 minutes; stopping its processes"
         "$PY" -m cooldown_sim stop "$run" 2>&1 | tail -n 2
-        for s in $(screen -ls | grep -oE "[0-9]+\.genesis-sim\b"); do screen -S "$s" -X quit; done
+        for s in $(screen -ls | grep -oE "[0-9]+\.cooldown-sim\b"); do screen -S "$s" -X quit; done
     fi
     echo "[STOPPED] simulation"
 else

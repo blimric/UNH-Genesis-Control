@@ -8,7 +8,8 @@
 #                                  a past cool-down's record (needs GENESIS_REPLAY_DATA)
 #   start.sh live --speed 60       any option of `python -m cooldown_sim live` or `history`
 #
-# The simulation runs in the background (screen session genesis-sim); its
+# The simulation runs in the background, in screen session cooldown-sim (not
+# genesis-*: the simulation's guard reads those as the live system).  Its
 # Phoebus windows open in about a minute.  End it with stop.sh, or with
 # End session on Sim Control.  Refuses while the live system runs here.
 set -uo pipefail
@@ -27,7 +28,7 @@ export DISPLAY="${DISPLAY:-:0}"                     # WSLg
 cd "$ROOT" || exit 1
 [[ -x "$GENESIS_SIM_VENV/bin/python" ]] || { echo "[FAIL] no Python environment: run $ROOT/start_cooldown_sim/setup.sh"; exit 1; }
 step() { printf '\n===== %s =====\n' "$*"; }
-session_up() { screen -ls 2>/dev/null | grep -qE "[0-9]+\.genesis-sim[[:space:]]"; }
+session_up() { screen -ls 2>/dev/null | grep -qE "[0-9]+\.cooldown-sim[[:space:]]"; }
 
 step "1. Nothing live running here"
 if screen -ls 2>/dev/null | grep -qE "[0-9]+\.(genesis-(cryo|hist|magnet|fitter|phoebus)|ioc-manager)"; then
@@ -46,7 +47,7 @@ mkdir -p logs
 log="$ROOT/logs/start_cooldown_sim.log"
 printf '\n---- %s start.sh %s\n' "$(date '+%F %T')" "$*" >> "$log"
 mark="$(wc -l < "$log")"
-screen -dmS genesis-sim bash -c "exec bash tools/sim.sh $(printf '%q ' "$@") >> '$log' 2>&1"
+screen -dmS cooldown-sim bash -c "exec bash tools/sim.sh $(printf '%q ' "$@") >> '$log' 2>&1"
 
 # wait for the session to say it is ready (Phoebus opening), or to stop
 for _ in $(seq 1 180); do
