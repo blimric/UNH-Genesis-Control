@@ -38,7 +38,7 @@ if [[ -n "$run" ]] && pgrep -f -- "-settings $run/" >/dev/null; then
     pkill -f -- "-settings $run/" && echo "[STOPPED] its Phoebus windows"
 fi
 if [[ -n "$run" ]]; then
-    report="$(ls "$run"/report* 2>/dev/null | head -n 1)"
-    echo "Run folder: $run"
-    [[ -n "$report" ]] && echo "Report:     $report"
+    echo "Run folder:   $run"
+    [[ -f "$run/report.md" ]] && echo "Report:       $run/report.md"
+    [[ -f "$run/after_action.html" ]] && echo "After-action: $run/after_action.html (open in a browser)"
 fi

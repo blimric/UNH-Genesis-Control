@@ -49,6 +49,49 @@ lab answers are in `docs/COOLDOWN_SIM_OPEN_QUESTIONS.md`.
 
 ## Log
 
+### 2026-11-18: one command for a cool-down, live (`start_cooldown/`) and simulated (`start_cooldown_sim/`)
+
+**Folders.**
+- `scripts/live_laptop/` became `start_cooldown/`, at the top level.
+- A new folder, `start_cooldown_sim/`, does the same job for the simulation.
+- `Cooldown-Quick-Start-Guide.md`, at the top, covers both.
+- README, STARTUP_INSTRUCTIONS, SIMULATION_QUICK_START and COOLDOWN_SIM point to them.
+
+**Live (`start_cooldown/`).**
+- `setup.sh` now clones and updates `elong`, not `dev-visualizer`.
+- **New `update.sh`.** A plain `git pull` in `~/genesis-live` refused because of `start.sh`'s two laptop-only edits (LS455 `tesla_scale`, magnet `write_enabled`). `update.sh` saves them to a patch and puts the files back; `start.sh` re-applies them. It refuses while anything runs, or when any other local change exists.
+- **`start.sh` changes.** It:
+  - says when the copy is behind its origin;
+  - takes the fitter's starting material from `FITTER_MATERIAL` in `~/.genesis-live.env`;
+  - refuses while a simulation runs.
+
+**Simulated (`start_cooldown_sim/`).**
+- `start.sh` runs `tools/sim.sh` in the background, in screen session `cooldown-sim`, and waits until Phoebus opens.
+  - The session is not named `genesis-*`, because the sim's guard rightly treats those as the live system. The first try, as `genesis-sim`, was refused.
+  - It refuses while the live system runs.
+- `stop.sh` sends `ctl stop` (the same as End session, so the report is written). It then closes that run's Phoebus, which outlives the session, matched by the run's own `-settings` file.
+- `update.sh` and `setup.sh` reuse the live update and `tools/sim_setup.sh`.
+
+**Tested on the laptop's WSL copy (`~/genesis-live`).**
+- **The update.** `update.sh` moved the copy from 54d2a96 to the new commit, kept both laptop edits in `~/genesis-live-local-edits-20261118T094103.patch`, and did nothing on a second run.
+- **Its refusals.** It refused an unrelated local change (in a throwaway clone) and refused while the sim ran.
+- **The sim.** `start_cooldown_sim/start.sh` brought up:
+  - 5 instrument simulators;
+  - 21 device IOCs;
+  - 10 logic IOCs;
+  - the fitter;
+  - Sim Control;
+  - Phoebus.
+
+  The session survived the `wsl.exe` that launched it exiting. Start Cool-down and play ran it at 120x.
+- **Refusals while the sim ran.** A second sim start reported it already up. The live `start.sh` refused at its new check; this was tested on a copy cut off before anything live starts.
+- **The stop.** `stop.sh` ended the session, wrote the report and closed Phoebus. Nothing was left running.
+- **Syntax.** All eight scripts pass `bash -n`.
+
+**Not run:** the live `start.sh` and `stop.sh` against the lab hardware. Their changes are paths, the "behind origin" note, the fitter-material setting and the sim check.
+
+`~/.genesis-live.env` was missing on the laptop, so `start.sh` would have skipped PyNMR. It is now written with `setup.sh`'s contents.
+
 ### 2026-11-06: two-peak polarization, linked magnet targets, fringe chart; merged into elong
 
 * Live DNP (dev-sim): Magic+ and Magic- are two Gaussians in microwave
