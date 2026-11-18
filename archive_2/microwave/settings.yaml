@@ -1,0 +1,8 @@
+# Paths inside this package are relative to this settings file.
+subsystem: microwave
+save_interval_s: 1.0
+control_prefix: UNH:GEN:MW:ARCH
+server_port: 5141
+data_root: /home/shared/cooldown_data
+pv_file: pvs.yaml
+epics_ca_addr_list: 127.0.0.1:5066 127.0.0.1:5069 127.0.0.1:5085 127.0.0.1:5087 127.0.0.1:5095

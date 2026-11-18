@@ -1,0 +1,87 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<display version="2.0.0">
+  <name>Magnet channels</name>
+  <width>425</width>
+  <height>1050</height>
+  <macros>
+    <P>UNH:GEN:MAG:ARCH</P>
+  </macros>
+  <widget type="label" version="3.0.0">
+    <name>Select a channel, then return to history and Load / Refresh.</name>
+    <x>20</x>
+    <y>15</y>
+    <width>400</width>
+    <height>28</height>
+    <text>Select a channel, then return to history and Load / Refresh.</text>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MAG:MAGNET_CURRENT</name>
+    <x>15</x>
+    <y>60</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MAG:MAGNET_CURRENT</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MAG:MAGNET_CURRENT</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MAG:CURRENT_MEAS</name>
+    <x>15</x>
+    <y>95</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MAG:CURRENT_MEAS</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MAG:CURRENT_MEAS</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MAG:FIELD</name>
+    <x>15</x>
+    <y>130</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MAG:FIELD</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MAG:FIELD</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MAG:NMR_D</name>
+    <x>15</x>
+    <y>165</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MAG:NMR_D</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MAG:NMR_D</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:MAG:NMR_P</name>
+    <x>15</x>
+    <y>200</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:MAG:NMR_P</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:MAG:NMR_P</value>
+      </action>
+    </actions>
+  </widget>
+</display>

@@ -1,0 +1,255 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<display version="2.0.0">
+  <name>Ssrf channels</name>
+  <width>425</width>
+  <height>1050</height>
+  <macros>
+    <P>UNH:GEN:SSRF:ARCH</P>
+  </macros>
+  <widget type="label" version="3.0.0">
+    <name>Select a channel, then return to history and Load / Refresh.</name>
+    <x>20</x>
+    <y>15</y>
+    <width>400</width>
+    <height>28</height>
+    <text>Select a channel, then return to history and Load / Refresh.</text>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:SSRF:GEN:FREQ_RBV</name>
+    <x>15</x>
+    <y>60</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:SSRF:GEN:FREQ_RBV</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:SSRF:GEN:FREQ_RBV</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:SSRF:GEN:LEVEL_RBV</name>
+    <x>15</x>
+    <y>95</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:SSRF:GEN:LEVEL_RBV</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:SSRF:GEN:LEVEL_RBV</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:SSRF:GEN:RF_RBV</name>
+    <x>15</x>
+    <y>130</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:SSRF:GEN:RF_RBV</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:SSRF:GEN:RF_RBV</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:SSRF:GEN:FM_RBV</name>
+    <x>15</x>
+    <y>165</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:SSRF:GEN:FM_RBV</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:SSRF:GEN:FM_RBV</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:SSRF:GEN:FM_DEV_RBV</name>
+    <x>15</x>
+    <y>200</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:SSRF:GEN:FM_DEV_RBV</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:SSRF:GEN:FM_DEV_RBV</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:SSRF:SEQ:CARRIER_MHZ</name>
+    <x>15</x>
+    <y>235</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:SSRF:SEQ:CARRIER_MHZ</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:SSRF:SEQ:CARRIER_MHZ</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:SSRF:SEQ:START_LEVEL_DBM</name>
+    <x>15</x>
+    <y>270</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:SSRF:SEQ:START_LEVEL_DBM</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:SSRF:SEQ:START_LEVEL_DBM</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:SSRF:SEQ:TARGET_LEVEL_DBM</name>
+    <x>15</x>
+    <y>305</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:SSRF:SEQ:TARGET_LEVEL_DBM</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:SSRF:SEQ:TARGET_LEVEL_DBM</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:SSRF:SEQ:FM_DEV_KHZ</name>
+    <x>15</x>
+    <y>340</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:SSRF:SEQ:FM_DEV_KHZ</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:SSRF:SEQ:FM_DEV_KHZ</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:SSRF:SEQ:FM_PERIOD_S</name>
+    <x>15</x>
+    <y>375</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:SSRF:SEQ:FM_PERIOD_S</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:SSRF:SEQ:FM_PERIOD_S</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:SSRF:SEQ:FM_REPEATS</name>
+    <x>15</x>
+    <y>410</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:SSRF:SEQ:FM_REPEATS</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:SSRF:SEQ:FM_REPEATS</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:SSRF:SEQ:VHIGH_V</name>
+    <x>15</x>
+    <y>445</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:SSRF:SEQ:VHIGH_V</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:SSRF:SEQ:VHIGH_V</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:SSRF:SEQ:VLOW_V</name>
+    <x>15</x>
+    <y>480</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:SSRF:SEQ:VLOW_V</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:SSRF:SEQ:VLOW_V</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:SSRF:SEQ:EXECUTION_STATE</name>
+    <x>15</x>
+    <y>515</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:SSRF:SEQ:EXECUTION_STATE</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:SSRF:SEQ:EXECUTION_STATE</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:SSRF:SEQ:EXECUTION_REASON</name>
+    <x>15</x>
+    <y>550</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:SSRF:SEQ:EXECUTION_REASON</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:SSRF:SEQ:EXECUTION_REASON</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:SSRF:SEQ:PREPARED_WAVEFORM_ID</name>
+    <x>15</x>
+    <y>585</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:SSRF:SEQ:PREPARED_WAVEFORM_ID</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:SSRF:SEQ:PREPARED_WAVEFORM_ID</value>
+      </action>
+    </actions>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>UNH:GEN:SSRF:RECIPE:SESSION_ID</name>
+    <x>15</x>
+    <y>620</y>
+    <width>390</width>
+    <height>30</height>
+    <text>UNH:GEN:SSRF:RECIPE:SESSION_ID</text>
+    <actions>
+      <action type="write_pv">
+        <pv_name>ca://$(P):HistoryPV</pv_name>
+        <value>UNH:GEN:SSRF:RECIPE:SESSION_ID</value>
+      </action>
+    </actions>
+  </widget>
+</display>
